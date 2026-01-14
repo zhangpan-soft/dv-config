@@ -1,0 +1,12 @@
+netty:
+  server:
+    port: ${NETTY_PORT:8888}
+    boss-thread-count: ${NETTY_BOSS_THREAD_COUNT:1}
+    worker-thread-count: ${NETTY_WORKER_THREAD_COUNT:4}
+    # 加密配置
+  crypto:
+    enabled: false
+    master-key: ${CRYPTO_MASTER_KEY:}  # 生产环境必须从环境变量读取
+    current-version: v1
+    algorithm: AES-256-GCM
+    iterations: 65536

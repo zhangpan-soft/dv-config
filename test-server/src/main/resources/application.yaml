@@ -1,0 +1,6 @@
+spring:
+  config:
+    import:
+      - optional:classpath:application-api.yaml
+      - optional:classpath:application-server.yaml
+      - optional:classpath:application-test.yaml
