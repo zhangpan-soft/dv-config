@@ -60,17 +60,4 @@ public class DynamicPropertySource extends MapPropertySource {
         getSource().put(key, value);
     }
 
-    /**
-     * 删除k-v
-     */
-    public void removeProperty(String key) {
-        getSource().remove(key);
-    }
-
-    /**
-     * 清空所有配置
-     */
-    public void clear() {
-        getSource().clear();
-    }
 }

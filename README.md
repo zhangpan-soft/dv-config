@@ -85,4 +85,7 @@ spring:
       minimum-idle: 1
       maximum-pool-size: 10
 ```
-
+### 注意事项
+1. 加密算法只提供256位AES-GCM
+2. client接到server端数据才会解密, server端数据不会解密
+3. client在解密时, 如果格式值格式不是加密后的json字符串, 会按明文处理
