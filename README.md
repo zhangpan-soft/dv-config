@@ -133,9 +133,6 @@ public class ConfigRefreshListener implements ApplicationListener<ConfigRefreshE
 
 ### 客户端动态路由
 ```java
-package com.casino.gateway.listener;
-
-import com.casino.config.client.netty.event.RouteRefreshEvent;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -168,8 +165,6 @@ public class RouteRefreshListener implements ApplicationListener<RouteRefreshEve
 }
 ```
 ```java
-package com.casino.gateway.route;
-
 import org.springframework.boot.context.properties.bind.BindResult;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
