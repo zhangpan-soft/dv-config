@@ -17,8 +17,6 @@ spring:
     parameters:
       TABLE_NAME_CONFIG: ${TABLE_NAME_CONFIG:config}
       TABLE_NAME_ROUTE: ${TABLE_NAME_ROUTE:route}
-      TABLE_NAME_USER: ${TABLE_NAME_USER:user}
-      TABLE_NAME_ROLE: ${TABLE_NAME_ROLE:role}
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
