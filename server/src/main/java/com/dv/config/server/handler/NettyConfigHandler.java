@@ -30,9 +30,6 @@ public class NettyConfigHandler {
         List<ConfigDefinition> configs = configGateway.getConfigs(namespaces);
         Map<String, TreeMap<String, String>> result = new HashMap<>();
         for (ConfigDefinition config : configs) {
-            if (!config.isEnabled()) {
-                continue;
-            }
             result.computeIfAbsent(config.getNamespace(), k -> new TreeMap<>());
             result.get(config.getNamespace()).put(config.getKey(), config.getValue());
         }
@@ -44,10 +41,6 @@ public class NettyConfigHandler {
      */
     public void refresh(String... namespaces) {
         if (namespaces==null || namespaces.length==0){
-            return;
-        }
-        boolean refresh = configGateway.refresh(namespaces);
-        if (!refresh){
             return;
         }
         ConfigDTO configDTO = new ConfigDTO();

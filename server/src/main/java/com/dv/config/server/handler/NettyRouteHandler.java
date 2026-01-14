@@ -24,10 +24,6 @@ public class NettyRouteHandler {
     }
 
     public void refresh() {
-        boolean refresh = routeGateway.refresh();
-        if (!refresh) {
-            return;
-        }
         applicationContext.publishEvent(new NettyRouteRefreshEvent(this, getRoutes().stream().map(RouteConvertor.INSTANCE::toDTO).toList()));
     }
 }

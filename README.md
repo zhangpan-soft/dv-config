@@ -1,5 +1,6 @@
 # dv-config
 轻量级配置中心
+### 核心目的
 
 # 服务端使用
 1. 随便一个springboot项目, 引入`server`模块, 引入你自己的 `api` 模块的实现即可
@@ -85,7 +86,114 @@ spring:
       minimum-idle: 1
       maximum-pool-size: 10
 ```
-### 注意事项
+# 注意事项
 1. 加密算法只提供256位AES-GCM
 2. client接到server端数据才会解密, server端数据不会解密
 3. client在解密时, 如果格式值格式不是加密后的json字符串, 会按明文处理
+
+# 其他说明
+1. 配置的加载会在springboot服务启动前就开始加载, 因此像数据库等信息可以使用client加载
+2. 如果需要使用spring cloud的配置刷新机制,请监听配置刷新事件, 并配合 spring cloud刷新机制, 路由同理
+3. 在实现 api 时, 如果需要刷新配置或路由, 请在配置或路由变更时, 触发刷新 `com.dv.config.server.handler.NettyConfigHandler#refresh`或`com.dv.config.server.handler.NettyRouteHandler#refresh`
+
+
+### 客户端动态配置
+```java
+/**
+ * 配置刷新监听器
+ * 监听配置更新事件，触发 Spring Cloud Context 刷新
+ */
+@Slf4j
+@Component
+public class ConfigRefreshListener implements ApplicationListener<ConfigRefreshEvent> {
+
+    @Autowired(required = false)
+    private ContextRefresher contextRefresher;
+
+    @Override
+    public void onApplicationEvent(@Nonnull ConfigRefreshEvent event) {
+
+        // 如果有 ContextRefresher（Spring Cloud Context），触发刷新
+        // 这会刷新所有 @RefreshScope 的 Bean 和 @ConfigurationProperties
+        if (contextRefresher != null) {
+            try {
+                contextRefresher.refresh();
+                log.info("配置刷新成功");
+            } catch (Exception e) {
+                log.error("配置刷新失败", e);
+            }
+        } else {
+            if (log.isDebugEnabled())
+                log.debug("ContextRefresher 未启用，跳过 @RefreshScope Bean 刷新");
+        }
+    }
+}
+```
+
+### 客户端动态路由
+```java
+package com.casino.gateway.listener;
+
+import com.casino.config.client.netty.event.RouteRefreshEvent;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationListener;
+import org.springframework.stereotype.Component;
+
+/**
+ * 路由刷新监听器
+ * 监听来自 config-server 的路由更新事件
+ */
+@Slf4j
+@Component
+public class RouteRefreshListener implements ApplicationListener<RouteRefreshEvent> {
+
+    @Resource
+    private ApplicationContext applicationContext;
+
+    @Override
+    public void onApplicationEvent(@Nonnull RouteRefreshEvent event) {
+        log.info("接收到路由更新事件");
+
+        try {
+            applicationContext.publishEvent(new RefreshRoutesEvent(this));
+        } catch (Exception e) {
+            log.error("处理路由更新事件失败", e);
+        }
+    }
+}
+```
+```java
+package com.casino.gateway.route;
+
+import org.springframework.boot.context.properties.bind.BindResult;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.cloud.gateway.route.RouteDefinition;
+import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
+
+@Component
+public class EnvironmentRouteDefinitionLocator implements RouteDefinitionLocator {
+
+    private final Environment environment;
+
+    public EnvironmentRouteDefinitionLocator(Environment environment) {
+        this.environment = environment;
+    }
+
+    @Override
+    public Flux<RouteDefinition> getRouteDefinitions() {
+        BindResult<List<RouteDefinition>> bindResult = Binder.get(environment).bind("spring.cloud.gateway.routes", Bindable.listOf(RouteDefinition.class));
+        return Flux.fromStream(bindResult.get().stream());
+    }
+}
+
+```

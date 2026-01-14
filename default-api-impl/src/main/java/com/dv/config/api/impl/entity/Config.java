@@ -45,9 +45,4 @@ public class Config implements ConfigDefinition {
     public String getValue() {
         return this.value;
     }
-
-    @Override
-    public String getDescription() {
-        return this.description;
-    }
 }

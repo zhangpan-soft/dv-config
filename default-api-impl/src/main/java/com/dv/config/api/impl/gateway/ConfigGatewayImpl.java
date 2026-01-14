@@ -38,7 +38,7 @@ public class ConfigGatewayImpl implements ConfigGateway {
                     configs.add(config);
                 }
             } else {
-                List<Config> configList = configMapper.selectList(Wrappers.lambdaQuery(Config.class).in(Config::getNamespace, Arrays.stream(namespaces).toList()));
+                List<Config> configList = configMapper.selectList(Wrappers.lambdaQuery(Config.class).in(Config::getNamespace, Arrays.stream(namespaces).toList()).eq(Config::isEnabled, true));
                 configs.addAll(configList);
                 stringRedisTemplate.opsForHash().putAll(configKey, configList.stream().collect(
                                 java.util.stream.Collectors.toMap(Config::getKey, JsonUtil::toJson)));
