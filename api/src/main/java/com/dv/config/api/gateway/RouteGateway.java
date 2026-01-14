@@ -13,15 +13,4 @@ public interface RouteGateway {
      * @return 路由
      */
     List<RouteDefinition> getRoutes();
-
-    /**
-     * 刷新路由
-     */
-    boolean refresh();
-
-    /**
-     * 保存路由
-     * @param routes 路由
-     */
-    void saves(List<RouteDefinition> routes);
 }

@@ -21,22 +21,4 @@ public interface ConfigDefinition {
      * @return 值
      */
     String getValue();
-
-    /**
-     * 是否启用
-     * @return 是否启用
-     */
-    boolean isEnabled();
-
-    /**
-     * 是否加密
-     * @return 是否加密
-     */
-    boolean isEncrypted();
-
-    /**
-     * 描述
-     * @return 描述
-     */
-    String getDescription();
 }

@@ -37,29 +37,4 @@ public class RouteGatewayImpl implements RouteGateway {
         }
         return list;
     }
-
-    @Override
-    public boolean refresh() {
-        stringRedisTemplate.delete(ROUTE_KEY);
-        getRoutes();
-        return true;
-    }
-
-    @Override
-    public void saves(List<RouteDefinition> routes) {
-        routeMapper.insertOrUpdate(routes
-                .stream()
-                .map(route -> new Route().setId(route.getId())
-                        .setUri(route.getUri())
-                        .setPredicates(route.getPredicates().stream().map(predicate -> new Route.Predicate().setName(predicate.getName()).setArgs(predicate.getArgs())).toList())
-                        .setFilters(route.getFilters().stream().map(filter -> new Route.Filter().setName(filter.getName()).setArgs(filter.getArgs())).toList())
-                        .setMetadata(route.getMetadata())
-                        .setOrder(route.getOrder())
-                        .setEnabled(route.isEnabled())
-                        .setDescription(route.getDescription())
-                )
-                .toList()
-        );
-        refresh();
-    }
 }

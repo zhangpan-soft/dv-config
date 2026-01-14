@@ -51,12 +51,6 @@ public interface RouteDefinition {
     boolean isEnabled();
 
     /**
-     * 路由描述
-     * @return 路由描述
-     */
-    String getDescription();
-
-    /**
      * 路由断言定义
      */
     interface PredicateDefinition {

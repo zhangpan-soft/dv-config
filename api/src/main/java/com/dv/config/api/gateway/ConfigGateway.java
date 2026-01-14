@@ -14,17 +14,4 @@ public interface ConfigGateway {
      * @return 配置
      */
     List<ConfigDefinition> getConfigs(String... namespaces);
-
-    /**
-     * 刷新缓存
-     * @param namespaces 命名空间
-     * @return 是否刷新成功
-     */
-    boolean refresh(String... namespaces);
-
-    /**
-     * 保存配置
-     * @param configs 配置
-     */
-    void saves(List<ConfigDefinition> configs);
 }
