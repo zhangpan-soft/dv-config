@@ -20,7 +20,7 @@ public class NettyRouteHandler {
     private ApplicationContext applicationContext;
 
     public List<RouteDefinition> getRoutes() {
-        return routeGateway.getRoutes().stream().filter(RouteDefinition::isEnabled).sorted(Comparator.comparingInt(RouteDefinition::getOrder)).toList();
+        return routeGateway.getRoutes().stream().sorted(Comparator.comparingInt(RouteDefinition::getOrder)).toList();
     }
 
     public void refresh() {

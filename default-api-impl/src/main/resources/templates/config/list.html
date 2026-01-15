@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Config List - DV Config</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075); margin-bottom: 20px; }
+        .card-header { background-color: #fff; border-bottom: 1px solid rgba(0,0,0,.05); font-weight: 600; }
+        .table th { font-weight: 600; color: #495057; }
+        .btn-icon { padding: 0.25rem 0.5rem; }
+        .status-badge { font-size: 0.8em; }
+        .desc-cell { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1060; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="fas fa-cogs me-2"></i>DV Config</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link active" href="/dv-config/admin/config"><i class="fas fa-list me-1"></i>Config</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/config/drafts"><i class="fas fa-edit me-1"></i>Config Drafts</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/config/history"><i class="fas fa-history me-1"></i>History</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/route"><i class="fas fa-route me-1"></i>Route</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/route/drafts"><i class="fas fa-edit me-1"></i>Route Drafts</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/route/history"><i class="fas fa-history me-1"></i>Route History</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-list-alt me-2 text-primary"></i>Configuration List</h2>
+        <div class="d-flex">
+            <form action="/dv-config/admin/config" method="get" class="d-flex me-3">
+                <input type="text" name="keyword" class="form-control me-2" placeholder="Search..." th:value="${keyword}">
+                <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-search"></i></button>
+            </form>
+            <div class="btn-group me-2" id="batchActions" style="display: none;">
+                <button class="btn btn-success" id="batchEnableBtn"><i class="fas fa-check me-1"></i>Enable</button>
+                <button class="btn btn-secondary" id="batchDisableBtn"><i class="fas fa-ban me-1"></i>Disable</button>
+                <button class="btn btn-danger" id="batchDeleteBtn"><i class="fas fa-trash me-1"></i>Delete</button>
+            </div>
+            <button class="btn btn-primary" onclick="openAddModal()">
+                <i class="fas fa-plus me-1"></i>Batch Add / Modify
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th class="ps-4" style="width: 40px;">
+                        <input type="checkbox" class="form-check-input" id="selectAll">
+                    </th>
+                    <th>ID</th>
+                    <th>Namespace</th>
+                    <th>Key</th>
+                    <th>Value</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Update Time</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="config : ${configs}">
+                    <td class="ps-4">
+                        <input type="checkbox" class="form-check-input row-checkbox"
+                               th:data-id="${config.id}"
+                               th:data-namespace="${config.namespace}"
+                               th:data-key="${config.key}"
+                               th:data-value="${config.value}"
+                               th:data-description="${config.description}"
+                               th:data-enabled="${config.enabled}">
+                    </td>
+                    <td class="text-muted" th:text="${config.id}"></td>
+                    <td><span class="badge bg-info text-dark" th:text="${config.namespace}"></span></td>
+                    <td class="fw-bold" th:text="${config.key}"></td>
+                    <td class="text-truncate" style="max-width: 200px;" th:text="${config.value}" th:title="${config.value}"></td>
+                    <td class="desc-cell" th:text="${config.description}" th:title="${config.description}"></td>
+                    <td>
+                        <span th:if="${config.enabled}" class="badge bg-success status-badge"><i class="fas fa-check me-1"></i>Enabled</span>
+                        <span th:unless="${config.enabled}" class="badge bg-secondary status-badge"><i class="fas fa-times me-1"></i>Disabled</span>
+                    </td>
+                    <td class="text-muted small" th:text="${#temporals.format(config.updateTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info btn-icon detail-btn"
+                                th:data-id="${config.id}"
+                                th:data-namespace="${config.namespace}"
+                                th:data-key="${config.key}"
+                                th:data-value="${config.value}"
+                                th:data-description="${config.description}"
+                                th:data-enabled="${config.enabled}"
+                                th:data-createtime="${#temporals.format(config.createTime, 'yyyy-MM-dd HH:mm:ss')}"
+                                th:data-updatetime="${#temporals.format(config.updateTime, 'yyyy-MM-dd HH:mm:ss')}"
+                                title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary btn-icon history-btn"
+                                th:data-id="${config.id}"
+                                title="History">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary btn-icon edit-btn"
+                                th:data-id="${config.id}"
+                                th:data-namespace="${config.namespace}"
+                                th:data-key="${config.key}"
+                                th:data-value="${config.value}"
+                                th:data-description="${config.description}"
+                                title="Edit">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger btn-icon delete-btn"
+                                th:data-id="${config.id}"
+                                th:data-namespace="${config.namespace}"
+                                th:data-key="${config.key}"
+                                th:data-value="${config.value}"
+                                title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(configs)}">
+                    <td colspan="9" class="text-center py-4 text-muted">No configurations found.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Batch Add/Modify Modal -->
+<div class="modal fade" id="addBatchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form id="batchForm">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-layer-group me-2"></i>Batch Add / Modify Configurations</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small py-2">
+                        <i class="fas fa-info-circle me-1"></i> Changes will be saved as <strong>Drafts</strong>.
+                    </div>
+                    <table class="table table-borderless" id="batchTable">
+                        <thead>
+                        <tr>
+                            <th style="width: 20%">Namespace</th>
+                            <th style="width: 20%">Key</th>
+                            <th style="width: 30%">Value</th>
+                            <th style="width: 20%">Description</th>
+                            <th style="width: 10%"></th>
+                        </tr>
+                        </thead>
+                        <tbody id="batchTableBody">
+                        <!-- Rows will be added here -->
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRow()">
+                        <i class="fas fa-plus me-1"></i>Add Row
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save to Drafts</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuration Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-bordered">
+                    <tbody>
+                    <tr><th style="width: 30%">ID</th><td id="detailId"></td></tr>
+                    <tr><th>Namespace</th><td id="detailNamespace"></td></tr>
+                    <tr><th>Key</th><td id="detailKey"></td></tr>
+                    <tr><th>Value</th><td id="detailValue" style="word-break: break-all;"></td></tr>
+                    <tr><th>Description</th><td id="detailDescription"></td></tr>
+                    <tr><th>Enabled</th><td id="detailEnabled"></td></tr>
+                    <tr><th>Create Time</th><td id="detailCreateTime"></td></tr>
+                    <tr><th>Update Time</th><td id="detailUpdateTime"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuration History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th>Version</th>
+                            <th>Value</th>
+                            <th>Operation</th>
+                            <th>User</th>
+                            <th>Time</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    let rowCount = 0;
+
+    function showToast(message, type = 'success') {
+        const toastHtml = `
+            <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        const toastEl = $(toastHtml);
+        $('.toast-container').append(toastEl);
+        const toast = new bootstrap.Toast(toastEl[0]);
+        toast.show();
+    }
+
+    function addRow(namespace = '', key = '', value = '', description = '', operation = 'ADD') {
+        const tbody = document.getElementById('batchTableBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <input type="text" name="drafts[${rowCount}].namespace" class="form-control form-control-sm" placeholder="Namespace" value="${namespace}" required>
+            </td>
+            <td>
+                <input type="text" name="drafts[${rowCount}].key" class="form-control form-control-sm" placeholder="Key" value="${key}" required>
+            </td>
+            <td>
+                <input type="text" name="drafts[${rowCount}].value" class="form-control form-control-sm" placeholder="Value" value="${value}" required>
+            </td>
+            <td>
+                <input type="text" name="drafts[${rowCount}].description" class="form-control form-control-sm" placeholder="Description" value="${description}">
+            </td>
+            <td>
+                <input type="hidden" name="drafts[${rowCount}].operationType" value="${operation}">
+                <input type="hidden" name="drafts[${rowCount}].enabled" value="true">
+                <input type="hidden" name="drafts[${rowCount}].encrypted" value="false">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        rowCount++;
+    }
+
+    function openAddModal() {
+        const tbody = document.getElementById('batchTableBody');
+        tbody.innerHTML = '';
+        rowCount = 0;
+        addRow();
+        new bootstrap.Modal(document.getElementById('addBatchModal')).show();
+    }
+
+    $(document).ready(function() {
+        // Checkbox Logic
+        $('#selectAll').change(function() {
+            $('.row-checkbox').prop('checked', $(this).prop('checked'));
+            toggleBatchActions();
+        });
+
+        $('.row-checkbox').change(function() {
+            toggleBatchActions();
+        });
+
+        function toggleBatchActions() {
+            if ($('.row-checkbox:checked').length > 0) {
+                $('#batchActions').show();
+            } else {
+                $('#batchActions').hide();
+            }
+        }
+
+        function submitBatchUpdate(enabled) {
+            const drafts = [];
+            $('.row-checkbox:checked').each(function(index) {
+                drafts.push({
+                    configId: $(this).data('id'),
+                    namespace: $(this).data('namespace'),
+                    key: $(this).data('key'),
+                    value: $(this).data('value'),
+                    description: $(this).data('description'),
+                    enabled: enabled,
+                    operationType: 'UPDATE'
+                });
+            });
+
+            const formData = {};
+            drafts.forEach((draft, i) => {
+                formData[`drafts[${i}].configId`] = draft.configId;
+                formData[`drafts[${i}].namespace`] = draft.namespace;
+                formData[`drafts[${i}].key`] = draft.key;
+                formData[`drafts[${i}].value`] = draft.value;
+                formData[`drafts[${i}].description`] = draft.description;
+                formData[`drafts[${i}].enabled`] = draft.enabled;
+                formData[`drafts[${i}].operationType`] = draft.operationType;
+            });
+
+            $.post('/dv-config/admin/config/saveBatch/api', formData, function(response) {
+                showToast('Batch update drafts created successfully!');
+                setTimeout(() => location.reload(), 1000);
+            }).fail(function() {
+                showToast('Failed to create update drafts.', 'danger');
+            });
+        }
+
+        // Batch Enable
+        $('#batchEnableBtn').click(function() {
+            if (!confirm('Are you sure to enable selected configs? (Will create UPDATE drafts)')) return;
+            submitBatchUpdate(true);
+        });
+
+        // Batch Disable
+        $('#batchDisableBtn').click(function() {
+            if (!confirm('Are you sure to disable selected configs? (Will create UPDATE drafts)')) return;
+            submitBatchUpdate(false);
+        });
+
+        // Batch Delete
+        $('#batchDeleteBtn').click(function() {
+            if (!confirm('Are you sure to delete selected configs? (Will create DELETE drafts)')) return;
+
+            const drafts = [];
+            $('.row-checkbox:checked').each(function(index) {
+                drafts.push({
+                    configId: $(this).data('id'),
+                    namespace: $(this).data('namespace'),
+                    key: $(this).data('key'),
+                    value: $(this).data('value'),
+                    operationType: 'DELETE'
+                });
+            });
+
+            const formData = {};
+            drafts.forEach((draft, i) => {
+                formData[`drafts[${i}].configId`] = draft.configId;
+                formData[`drafts[${i}].namespace`] = draft.namespace;
+                formData[`drafts[${i}].key`] = draft.key;
+                formData[`drafts[${i}].value`] = draft.value;
+                formData[`drafts[${i}].operationType`] = draft.operationType;
+            });
+
+            $.post('/dv-config/admin/config/saveBatch/api', formData, function(response) {
+                showToast('Batch delete drafts created successfully!');
+                setTimeout(() => location.reload(), 1000);
+            }).fail(function() {
+                showToast('Failed to create delete drafts.', 'danger');
+            });
+        });
+
+        // Edit Button
+        $('.edit-btn').click(function() {
+            const namespace = $(this).data('namespace');
+            const key = $(this).data('key');
+            const value = $(this).data('value');
+            const description = $(this).data('description') || '';
+
+            const tbody = document.getElementById('batchTableBody');
+            tbody.innerHTML = '';
+            rowCount = 0;
+            addRow(namespace, key, value, description, 'UPDATE');
+
+            new bootstrap.Modal(document.getElementById('addBatchModal')).show();
+        });
+
+        // Detail Button
+        $('.detail-btn').click(function() {
+            $('#detailId').text($(this).data('id'));
+            $('#detailNamespace').text($(this).data('namespace'));
+            $('#detailKey').text($(this).data('key'));
+            $('#detailValue').text($(this).data('value'));
+            $('#detailDescription').text($(this).data('description'));
+            $('#detailEnabled').text($(this).data('enabled'));
+            $('#detailCreateTime').text($(this).data('createtime'));
+            $('#detailUpdateTime').text($(this).data('updatetime'));
+
+            new bootstrap.Modal(document.getElementById('detailModal')).show();
+        });
+
+        // Delete Button (AJAX)
+        $('.delete-btn').click(function() {
+            if (!confirm('Are you sure to delete this config? (Will create a DELETE draft)')) return;
+
+            const data = {
+                configId: $(this).data('id'),
+                namespace: $(this).data('namespace'),
+                key: $(this).data('key'),
+                value: $(this).data('value'),
+                operationType: 'DELETE'
+            };
+
+            $.post('/dv-config/admin/config/save/api', data, function(response) {
+                showToast('Delete draft created successfully!');
+            }).fail(function() {
+                showToast('Failed to create delete draft.', 'danger');
+            });
+        });
+
+        // Batch Save Form (AJAX)
+        $('#batchForm').submit(function(e) {
+            e.preventDefault();
+            const formData = $(this).serialize();
+
+            $.post('/dv-config/admin/config/saveBatch/api', formData, function(response) {
+                showToast('Drafts saved successfully!');
+                bootstrap.Modal.getInstance(document.getElementById('addBatchModal')).hide();
+            }).fail(function() {
+                showToast('Failed to save drafts.', 'danger');
+            });
+        });
+
+        // History Button
+        $('.history-btn').click(function() {
+            const configId = $(this).data('id');
+            $.get('/dv-config/admin/config/history/' + configId, function(data) {
+                const tbody = $('#historyTableBody');
+                tbody.empty();
+                if (data.length === 0) {
+                    tbody.append('<tr><td colspan="6" class="text-center">No history found</td></tr>');
+                } else {
+                    data.forEach(function(h) {
+                        const row = `
+                            <tr>
+                                <td>${h.version}</td>
+                                <td class="text-truncate" style="max-width: 150px;" title="${h.value}">${h.value}</td>
+                                <td>${h.operationType}</td>
+                                <td>${h.createBy || '-'}</td>
+                                <td>${h.createTime}</td>
+                                <td>
+                                    <form action="/dv-config/admin/config/rollback/${h.historyId}" method="post" class="d-inline" onsubmit="return confirm('Rollback to this version?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">Rollback</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                }
+                new bootstrap.Modal(document.getElementById('historyModal')).show();
+            });
+        });
+    });
+</script>
+</body>
+</html>

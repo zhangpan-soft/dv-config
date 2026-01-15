@@ -31,7 +31,7 @@ public class RouteGatewayImpl implements RouteGateway {
             });
             list.addAll(routes);
         } else {
-            List<Route> routes = routeMapper.selectList(Wrappers.lambdaQuery(Route.class));
+            List<Route> routes = routeMapper.selectList(Wrappers.lambdaQuery(Route.class).eq(Route::isEnabled, true));
             list.addAll(routes);
             stringRedisTemplate.opsForValue().set(ROUTE_KEY, JsonUtil.toJson(routes));
         }

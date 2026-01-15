@@ -101,7 +101,24 @@ spring:
     hikari:
       minimum-idle: 1
       maximum-pool-size: 10
+
+# Enable Admin UI (Optional)
+dv:
+  config:
+    admin-ui:
+      enabled: true # Enable built-in management interface
 ```
+
+# Admin UI Features
+The `default-api-impl` module provides a lightweight management interface supporting:
+1. **Config Management**: CRUD, draft mechanism, history tracking, one-click rollback, batch operations (enable/disable/delete).
+2. **Route Management**: Dynamic route configuration, JSON editing, draft & publish workflow, history & rollback.
+3. **Diff View**: Compare drafts with live configurations before publishing.
+4. **Security Integration**: Integrate with custom user systems by implementing the `UserProvider` interface.
+
+Access URLs:
+- Config: `/dv-config/admin/config`
+- Route: `/dv-config/admin/route`
 
 # Important Notes
 1. The encryption algorithm only supports **AES-256-GCM**.

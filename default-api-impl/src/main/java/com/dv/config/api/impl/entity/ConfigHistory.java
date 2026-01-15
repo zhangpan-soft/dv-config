@@ -1,19 +1,22 @@
 package com.dv.config.api.impl.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.dv.config.api.entity.ConfigDefinition;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
-@TableName("config")
-public class Config implements ConfigDefinition {
-    @TableId
-    @TableField(value = "`id`")
-    private Long id;
+@TableName("config_history")
+public class ConfigHistory {
+    @TableId(type = IdType.AUTO)
+    private Long historyId;
+    
+    @TableField(value = "`config_id`")
+    private Long configId;
+    
     @TableField(value = "`namespace`")
     private String namespace;
     @TableField(value = "`key`")
@@ -22,32 +25,19 @@ public class Config implements ConfigDefinition {
     private String value;
     @TableField(value = "`description`")
     private String description;
-    @TableField(value = "`create_time`")
-    private LocalDateTime createTime;
-    @TableField(value = "`update_time`")
-    private LocalDateTime updateTime;
     @TableField(value = "`enabled`")
     private boolean enabled;
     @TableField(value = "`encrypted`")
     private boolean encrypted;
     
+    @TableField(value = "`version`")
+    private String version; // 版本号，例如 V20231027101010
+    
+    @TableField(value = "`operation_type`")
+    private String operationType; // ADD, UPDATE, DELETE
+    
+    @TableField(value = "`create_time`")
+    private LocalDateTime createTime;
     @TableField(value = "`create_by`")
     private String createBy;
-    @TableField(value = "`update_by`")
-    private String updateBy;
-
-    @Override
-    public String getNamespace() {
-        return this.namespace;
-    }
-
-    @Override
-    public String getKey() {
-        return this.key;
-    }
-
-    @Override
-    public String getValue() {
-        return this.value;
-    }
 }

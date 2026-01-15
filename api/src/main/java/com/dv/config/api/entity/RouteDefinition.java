@@ -45,12 +45,6 @@ public interface RouteDefinition {
     List<FilterDefinition> getFilters();
 
     /**
-     * 是否启用
-     * @return 是否启用
-     */
-    boolean isEnabled();
-
-    /**
      * 路由断言定义
      */
     interface PredicateDefinition {

@@ -1,14 +1,49 @@
+# 定义全局变量，供 Liquibase 和 MyBatis-Plus 使用
+TABLE_NAME_CONFIG: t_config
+TABLE_NAME_ROUTE: t_route
+
 spring:
   main:
     allow-bean-definition-overriding: true
 
   liquibase:
     parameters:
-      TABLE_NAME_CONFIG: t_config
-      TABLE_NAME_ROUTE: t_route
+      TABLE_NAME_CONFIG: ${TABLE_NAME_CONFIG}
+      TABLE_NAME_ROUTE: ${TABLE_NAME_ROUTE}
   datasource:
     url: jdbc:mysql://localhost:3306/config-server?useUnicode=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF8&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: 123456
     type: com.zaxxer.hikari.HikariDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  # Redis 配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      
+  # Thymeleaf 热更新配置
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+# Netty 服务端配置
+netty:
+  server:
+    port: 8888
+    boss-thread-count: 1
+    worker-thread-count: 4
+    idle-timeout: 65
+
+# 启用管理 UI
+dv:
+  config:
+    admin-ui:
+      enabled: true
+
+logging:
+  level:
+    com.dv.config: DEBUG

@@ -100,7 +100,24 @@ spring:
     hikari:
       minimum-idle: 1
       maximum-pool-size: 10
+
+# 启用管理 UI (可选)
+dv:
+  config:
+    admin-ui:
+      enabled: true # 开启内置管理界面
 ```
+
+# 管理 UI 功能
+`default-api-impl` 模块提供了一个轻量级的管理界面，支持：
+1. **配置管理**: 增删改查、草稿机制、历史记录、一键回滚、批量操作（启用/禁用/删除）。
+2. **路由管理**: 动态路由配置、JSON 编辑、草稿与发布流程、历史记录与回滚。
+3. **差异对比**: 发布前对比草稿与线上配置的差异。
+4. **权限集成**: 通过实现 `UserProvider` 接口对接自定义用户系统。
+
+访问地址:
+- Config: `/dv-config/admin/config`
+- Route: `/dv-config/admin/route`
 
 # 注意事项
 1. 加密算法只提供 256位 AES-GCM。

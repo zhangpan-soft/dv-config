@@ -5,18 +5,17 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.dv.config.api.entity.RouteDefinition;
+import com.dv.config.api.impl.entity.Route.Filter;
+import com.dv.config.api.impl.entity.Route.Predicate;
 import lombok.Data;
-import lombok.experimental.Accessors;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 @Data
-@TableName("route")
-@Accessors(chain = true)
-public class Route implements RouteDefinition {
+@TableName("route_draft")
+public class RouteDraft {
     @TableId(value = "id", type = IdType.INPUT)
     private String id;
     
@@ -30,12 +29,15 @@ public class Route implements RouteDefinition {
     private Map<String, Object> metadata;
     
     @TableField(value = "`order_num`")
-    private Integer orderNum; // 修改字段名，避开关键字 order
+    private Integer orderNum; // 修改字段名
     
     @TableField(value = "`enabled`")
     private boolean enabled;
     @TableField(value = "`description`")
     private String description;
+    
+    @TableField(value = "`operation_type`")
+    private String operationType;
     
     @TableField(value = "`create_time`")
     private LocalDateTime createTime;
@@ -45,37 +47,4 @@ public class Route implements RouteDefinition {
     private String createBy;
     @TableField(value = "`update_by`")
     private String updateBy;
-
-    @Override
-    public int getOrder() {
-        return this.orderNum != null ? this.orderNum : 0;
-    }
-
-    @Override
-    public List<RouteDefinition.PredicateDefinition> getPredicates() {
-        return (List<RouteDefinition.PredicateDefinition>) (List<?>) this.predicates;
-    }
-
-    @Override
-    public List<RouteDefinition.FilterDefinition> getFilters() {
-        return (List<RouteDefinition.FilterDefinition>) (List<?>) this.filters;
-    }
-
-    @Override
-    public Map<String, Object> getMetadata() {
-        return this.metadata;
-    }
-
-    @Data
-    @Accessors(chain = true)
-    public static class Predicate implements RouteDefinition.PredicateDefinition {
-        private String name;
-        private Map<String, String> args;
-    }
-    @Data
-    @Accessors(chain = true)
-    public static class Filter implements RouteDefinition.FilterDefinition {
-        private String name;
-        private Map<String, String> args;
-    }
 }

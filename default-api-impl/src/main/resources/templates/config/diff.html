@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Config Diff - DV Config</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .diff-container { background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px; }
+        .diff-header { padding: 10px 15px; background: #f1f3f5; border-bottom: 1px solid #ddd; font-weight: bold; display: flex; justify-content: space-between; }
+        .diff-body { display: flex; }
+        .diff-pane { flex: 1; padding: 10px; font-family: monospace; white-space: pre-wrap; word-break: break-all; }
+        .diff-pane.old { border-right: 1px solid #eee; background-color: #fff5f5; color: #c00; }
+        .diff-pane.new { background-color: #f0fff4; color: #0a0; }
+        .diff-pane.empty { background-color: #f8f9fa; color: #aaa; }
+        .diff-type-badge { font-size: 0.8em; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="fas fa-cogs me-2"></i>DV Config</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/config"><i class="fas fa-list me-1"></i>Config</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/dv-config/admin/config/drafts"><i class="fas fa-edit me-1"></i>Config Drafts</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-exchange-alt me-2 text-primary"></i>Review Changes</h2>
+        <div>
+            <a href="/dv-config/admin/config/drafts" class="btn btn-secondary me-2">Back to Drafts</a>
+            <form action="/dv-config/admin/config/publish" method="post" class="d-inline">
+                <button type="submit" class="btn btn-success" onclick="return confirm('Confirm publish?')">
+                    <i class="fas fa-check-circle me-1"></i>Confirm & Publish
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div th:if="${#lists.isEmpty(diffs)}" class="alert alert-info">
+        No pending changes to review.
+    </div>
+
+    <div th:each="diff : ${diffs}" class="diff-container">
+        <div class="diff-header">
+            <span>
+                <span th:class="${'badge diff-type-badge me-2 ' + (diff.diffType == 'ADD' ? 'bg-success' : (diff.diffType == 'DELETE' ? 'bg-danger' : 'bg-warning text-dark'))}"
+                      th:text="${diff.diffType}"></span>
+                <span class="text-muted" th:text="${diff.namespace}"></span> / <span th:text="${diff.key}"></span>
+            </span>
+        </div>
+        <div class="diff-body">
+            <div th:class="${'diff-pane ' + (diff.oldValue == null ? 'empty' : 'old')}">
+                <div class="text-muted small mb-1">ORIGINAL</div>
+                <div th:text="${diff.oldValue != null ? diff.oldValue : '(None)'}"></div>
+            </div>
+            <div th:class="${'diff-pane ' + (diff.newValue == null ? 'empty' : 'new')}">
+                <div class="text-muted small mb-1">NEW (DRAFT)</div>
+                <div th:text="${diff.newValue != null ? diff.newValue : '(None)'}"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

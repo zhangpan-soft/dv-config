@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Route List - DV Config</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075); margin-bottom: 20px; }
+        .card-header { background-color: #fff; border-bottom: 1px solid rgba(0,0,0,.05); font-weight: 600; }
+        .table th { font-weight: 600; color: #495057; }
+        .btn-icon { padding: 0.25rem 0.5rem; }
+        .status-badge { font-size: 0.8em; }
+        .desc-cell { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1060; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="fas fa-cogs me-2"></i>DV Config</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/config"><i class="fas fa-list me-1"></i>Config</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/config/drafts"><i class="fas fa-edit me-1"></i>Config Drafts</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/config/history"><i class="fas fa-history me-1"></i>History</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/dv-config/admin/route"><i class="fas fa-route me-1"></i>Route</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/route/drafts"><i class="fas fa-edit me-1"></i>Route Drafts</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/route/history"><i class="fas fa-history me-1"></i>Route History</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-route me-2 text-primary"></i>Route List</h2>
+        <div class="d-flex">
+            <form action="/dv-config/admin/route" method="get" class="d-flex me-3">
+                <input type="text" name="keyword" class="form-control me-2" placeholder="Search..." th:value="${keyword}">
+                <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-search"></i></button>
+            </form>
+            <div class="btn-group me-2" id="batchActions" style="display: none;">
+                <button class="btn btn-success" id="batchEnableBtn"><i class="fas fa-check me-1"></i>Enable</button>
+                <button class="btn btn-secondary" id="batchDisableBtn"><i class="fas fa-ban me-1"></i>Disable</button>
+                <button class="btn btn-danger" id="batchDeleteBtn"><i class="fas fa-trash me-1"></i>Delete</button>
+            </div>
+            <button class="btn btn-primary" onclick="openAddModal()">
+                <i class="fas fa-plus me-1"></i>Add Route
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th class="ps-4" style="width: 40px;">
+                        <input type="checkbox" class="form-check-input" id="selectAll">
+                    </th>
+                    <th class="ps-4">ID</th>
+                    <th>URI</th>
+                    <th>Order</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Update Time</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="route : ${routes}">
+                    <td class="ps-4">
+                        <input type="checkbox" class="form-check-input row-checkbox"
+                               th:data-id="${route.id}"
+                               th:data-uri="${route.uri}"
+                               th:data-order="${route.order}"
+                               th:data-description="${route.description}"
+                               th:data-enabled="${route.enabled}"
+                               th:data-predicates="${route.predicatesJson}"
+                               th:data-filters="${route.filtersJson}"
+                               th:data-metadata="${route.metadataJson}">
+                    </td>
+                    <td class="ps-4 fw-bold" th:text="${route.id}"></td>
+                    <td><span class="badge bg-light text-dark border" th:text="${route.uri}"></span></td>
+                    <td th:text="${route.order}"></td>
+                    <td class="desc-cell" th:text="${route.description}" th:title="${route.description}"></td>
+                    <td>
+                        <span th:if="${route.enabled}" class="badge bg-success status-badge"><i class="fas fa-check me-1"></i>Enabled</span>
+                        <span th:unless="${route.enabled}" class="badge bg-secondary status-badge"><i class="fas fa-times me-1"></i>Disabled</span>
+                    </td>
+                    <td class="text-muted small" th:text="${#temporals.format(route.updateTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info btn-icon detail-btn"
+                                th:data-id="${route.id}"
+                                th:data-uri="${route.uri}"
+                                th:data-order="${route.order}"
+                                th:data-description="${route.description}"
+                                th:data-enabled="${route.enabled}"
+                                th:data-predicates="${route.predicatesJson}"
+                                th:data-filters="${route.filtersJson}"
+                                th:data-metadata="${route.metadataJson}"
+                                th:data-createtime="${#temporals.format(route.createTime, 'yyyy-MM-dd HH:mm:ss')}"
+                                th:data-updatetime="${#temporals.format(route.updateTime, 'yyyy-MM-dd HH:mm:ss')}"
+                                title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary btn-icon history-btn"
+                                th:data-id="${route.id}"
+                                title="History">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary btn-icon edit-btn"
+                                th:data-id="${route.id}"
+                                th:data-uri="${route.uri}"
+                                th:data-order="${route.order}"
+                                th:data-description="${route.description}"
+                                th:data-predicates="${route.predicatesJson}"
+                                th:data-filters="${route.filtersJson}"
+                                th:data-metadata="${route.metadataJson}"
+                                title="Edit">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger btn-icon delete-btn"
+                                th:data-id="${route.id}"
+                                title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(routes)}">
+                    <td colspan="8" class="text-center py-4 text-muted">No routes found.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Modify Modal -->
+<div class="modal fade" id="addRouteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="routeForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle"><i class="fas fa-route me-2"></i>Add Route</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small py-2">
+                        <i class="fas fa-info-circle me-1"></i> Changes will be saved as <strong>Drafts</strong>.
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Route ID</label>
+                            <input type="text" name="id" id="routeId" class="form-control" placeholder="e.g. user-service" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Order</label>
+                            <input type="number" name="orderNum" id="routeOrder" class="form-control" value="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">URI</label>
+                        <input type="text" name="uri" id="routeUri" class="form-control" placeholder="e.g. lb://user-service" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" name="description" id="routeDescription" class="form-control" placeholder="Description">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Predicates (JSON Array)</label>
+                        <textarea name="predicatesJson" id="routePredicates" class="form-control font-monospace" rows="3" placeholder='[{"name":"Path", "args":{"pattern":"/user/**"}}]'></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Filters (JSON Array)</label>
+                        <textarea name="filtersJson" id="routeFilters" class="form-control font-monospace" rows="3" placeholder='[{"name":"StripPrefix", "args":{"parts":"1"}}]'></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Metadata (JSON Object)</label>
+                        <textarea name="metadataJson" id="routeMetadata" class="form-control font-monospace" rows="2" placeholder='{"version":"v1"}'></textarea>
+                    </div>
+
+                    <input type="hidden" name="operationType" id="operationType" value="ADD">
+                    <input type="hidden" name="enabled" value="true">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save to Draft</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Route Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-bordered">
+                    <tbody>
+                    <tr><th style="width: 25%">ID</th><td id="detailId"></td></tr>
+                    <tr><th>URI</th><td id="detailUri"></td></tr>
+                    <tr><th>Order</th><td id="detailOrder"></td></tr>
+                    <tr><th>Description</th><td id="detailDescription"></td></tr>
+                    <tr><th>Enabled</th><td id="detailEnabled"></td></tr>
+                    <tr><th>Predicates</th><td><pre id="detailPredicates" class="mb-0 bg-light p-2"></pre></td></tr>
+                    <tr><th>Filters</th><td><pre id="detailFilters" class="mb-0 bg-light p-2"></pre></td></tr>
+                    <tr><th>Metadata</th><td><pre id="detailMetadata" class="mb-0 bg-light p-2"></pre></td></tr>
+                    <tr><th>Create Time</th><td id="detailCreateTime"></td></tr>
+                    <tr><th>Update Time</th><td id="detailUpdateTime"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Route History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th>Version</th>
+                            <th>URI</th>
+                            <th>Operation</th>
+                            <th>User</th>
+                            <th>Time</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+<script>
+    function showToast(message, type = 'success') {
+        const toastHtml = `
+            <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        const toastEl = $(toastHtml);
+        $('.toast-container').append(toastEl);
+        const toast = new bootstrap.Toast(toastEl[0]);
+        toast.show();
+        toastEl.on('hidden.bs.toast', function () {
+            $(this).remove();
+        });
+    }
+
+    function openAddModal() {
+        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus me-2"></i>Add Route';
+        document.getElementById('routeId').value = '';
+        document.getElementById('routeId').readOnly = false;
+        document.getElementById('routeUri').value = '';
+        document.getElementById('routeOrder').value = '0';
+        document.getElementById('routeDescription').value = '';
+        document.getElementById('routePredicates').value = '';
+        document.getElementById('routeFilters').value = '';
+        document.getElementById('routeMetadata').value = '';
+        document.getElementById('operationType').value = 'ADD';
+        new bootstrap.Modal(document.getElementById('addRouteModal')).show();
+    }
+
+    $(document).ready(function() {
+        // Checkbox Logic
+        $('#selectAll').change(function() {
+            $('.row-checkbox').prop('checked', $(this).prop('checked'));
+            toggleBatchActions();
+        });
+
+        $('.row-checkbox').change(function() {
+            toggleBatchActions();
+        });
+
+        function toggleBatchActions() {
+            if ($('.row-checkbox:checked').length > 0) {
+                $('#batchActions').show();
+            } else {
+                $('#batchActions').hide();
+            }
+        }
+
+        function submitBatchUpdate(enabled) {
+            const drafts = [];
+            $('.row-checkbox:checked').each(function() {
+                drafts.push({
+                    id: $(this).data('id'),
+                    uri: $(this).data('uri'),
+                    orderNum: $(this).data('order'),
+                    description: $(this).data('description'),
+                    predicatesJson: JSON.stringify($(this).data('predicates')),
+                    filtersJson: JSON.stringify($(this).data('filters')),
+                    metadataJson: JSON.stringify($(this).data('metadata')),
+                    enabled: enabled,
+                    operationType: 'UPDATE'
+                });
+            });
+
+            // Route 不支持批量保存接口，需要循环调用单个保存接口
+            // 或者修改后端支持批量保存 RouteDraftDTO
+            // 为了简单，这里循环调用
+            let completed = 0;
+            drafts.forEach(draft => {
+                $.post('/dv-config/admin/route/save/api', draft, function() {
+                    completed++;
+                    if (completed === drafts.length) {
+                        showToast('Batch update drafts created successfully!');
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                });
+            });
+        }
+
+        // Batch Enable
+        $('#batchEnableBtn').click(function() {
+            if (!confirm('Are you sure to enable selected routes? (Will create UPDATE drafts)')) return;
+            submitBatchUpdate(true);
+        });
+
+        // Batch Disable
+        $('#batchDisableBtn').click(function() {
+            if (!confirm('Are you sure to disable selected routes? (Will create UPDATE drafts)')) return;
+            submitBatchUpdate(false);
+        });
+
+        // Batch Delete
+        $('#batchDeleteBtn').click(function() {
+            if (!confirm('Are you sure to delete selected routes? (Will create DELETE drafts)')) return;
+
+            let completed = 0;
+            const total = $('.row-checkbox:checked').length;
+
+            $('.row-checkbox:checked').each(function() {
+                const data = {
+                    id: $(this).data('id'),
+                    operationType: 'DELETE'
+                };
+                $.post('/dv-config/admin/route/save/api', data, function() {
+                    completed++;
+                    if (completed === total) {
+                        showToast('Batch delete drafts created successfully!');
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                });
+            });
+        });
+
+        // Edit Button
+        $('.edit-btn').click(function() {
+            const id = $(this).data('id');
+            const uri = $(this).data('uri');
+            const order = $(this).data('order');
+            const description = $(this).data('description');
+            const predicates = $(this).data('predicates');
+            const filters = $(this).data('filters');
+            const metadata = $(this).data('metadata');
+
+            $('#modalTitle').html('<i class="fas fa-pen me-2"></i>Modify Route');
+            $('#routeId').val(id).prop('readOnly', true);
+            $('#routeUri').val(uri);
+            $('#routeOrder').val(order);
+            $('#routeDescription').val(description);
+            $('#routePredicates').val(JSON.stringify(predicates));
+            $('#routeFilters').val(JSON.stringify(filters));
+            $('#routeMetadata').val(JSON.stringify(metadata));
+            $('#operationType').val('UPDATE');
+
+            new bootstrap.Modal(document.getElementById('addRouteModal')).show();
+        });
+
+        // Detail Button
+        $('.detail-btn').click(function() {
+            $('#detailId').text($(this).data('id'));
+            $('#detailUri').text($(this).data('uri'));
+            $('#detailOrder').text($(this).data('order'));
+            $('#detailDescription').text($(this).data('description'));
+            $('#detailEnabled').text($(this).data('enabled'));
+
+            const formatJson = (json) => {
+                try {
+                    return json ? JSON.stringify(json, null, 2) : '';
+                } catch (e) { return json; }
+            };
+
+            $('#detailPredicates').text(formatJson($(this).data('predicates')));
+            $('#detailFilters').text(formatJson($(this).data('filters')));
+            $('#detailMetadata').text(formatJson($(this).data('metadata')));
+            $('#detailCreateTime').text($(this).data('createtime'));
+            $('#detailUpdateTime').text($(this).data('updatetime'));
+
+            new bootstrap.Modal(document.getElementById('detailModal')).show();
+        });
+
+        // Delete Button (AJAX)
+        $('.delete-btn').click(function() {
+            if (!confirm('Are you sure to delete this route? (Will create a DELETE draft)')) return;
+
+            const data = {
+                id: $(this).data('id'),
+                operationType: 'DELETE'
+            };
+
+            $.post('/dv-config/admin/route/save/api', data, function(response) {
+                showToast('Delete draft created successfully!');
+            }).fail(function() {
+                showToast('Failed to create delete draft.', 'danger');
+            });
+        });
+
+        // Save Form (AJAX)
+        $('#routeForm').submit(function(e) {
+            e.preventDefault();
+            const formData = $(this).serialize();
+
+            $.post('/dv-config/admin/route/save/api', formData, function(response) {
+                showToast('Route draft saved successfully!');
+                bootstrap.Modal.getInstance(document.getElementById('addRouteModal')).hide();
+            }).fail(function() {
+                showToast('Failed to save draft.', 'danger');
+            });
+        });
+
+        // History Button
+        $('.history-btn').click(function() {
+            const routeId = $(this).data('id');
+            $.get('/dv-config/admin/route/history/' + routeId, function(data) {
+                const tbody = $('#historyTableBody');
+                tbody.empty();
+                if (data.length === 0) {
+                    tbody.append('<tr><td colspan="6" class="text-center">No history found</td></tr>');
+                } else {
+                    data.forEach(function(h) {
+                        const row = `
+                            <tr>
+                                <td>${h.version}</td>
+                                <td>${h.uri}</td>
+                                <td>${h.operationType}</td>
+                                <td>${h.createBy || '-'}</td>
+                                <td>${h.createTime}</td>
+                                <td>
+                                    <form action="/dv-config/admin/route/rollback/${h.historyId}" method="post" class="d-inline" onsubmit="return confirm('Rollback to this version?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">Rollback</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                }
+                new bootstrap.Modal(document.getElementById('historyModal')).show();
+            });
+        });
+    });
+</script>
+</body>
+</html>

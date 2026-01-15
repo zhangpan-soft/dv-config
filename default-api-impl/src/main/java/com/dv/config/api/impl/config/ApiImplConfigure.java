@@ -12,9 +12,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.stereotype.Controller;
 
 @Configuration
+@ComponentScan(
+    basePackages = "com.dv.config.api.impl",
+    excludeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Controller.class)
+)
 @MapperScan(value = {"com.dv.config.api.impl.mapper"})
 public class ApiImplConfigure {
 
@@ -44,6 +51,19 @@ public class ApiImplConfigure {
             }
             if ("route".equalsIgnoreCase(tableName)){
                 return routeTableName;
+            }
+            // 处理 Draft 和 History 表的动态表名
+            if ("config_draft".equalsIgnoreCase(tableName)) {
+                return configTableName + "_draft";
+            }
+            if ("config_history".equalsIgnoreCase(tableName)) {
+                return configTableName + "_history";
+            }
+            if ("route_draft".equalsIgnoreCase(tableName)) {
+                return routeTableName + "_draft";
+            }
+            if ("route_history".equalsIgnoreCase(tableName)) {
+                return routeTableName + "_history";
             }
             return tableName;
         });
