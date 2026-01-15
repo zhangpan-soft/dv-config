@@ -1,3 +1,7 @@
+<p align="center">
+  <b>简体中文</b> | <a href="./README_EN.md">English</a>
+</p>
+
 # dv-config
 轻量级配置中心
 
