@@ -66,7 +66,7 @@ public class NettyClient implements DisposableBean {
     private Channel channel;
 
     private final Map<String, String> namespaceConfigSha1 = new ConcurrentHashMap<>();
-    private String routeSha1;
+    private volatile String routeSha1;
 
     // ========== 轮询守护线程 ==========
     private Thread configPollThread;

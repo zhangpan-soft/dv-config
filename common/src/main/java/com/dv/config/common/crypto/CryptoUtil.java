@@ -29,6 +29,9 @@ public class CryptoUtil {
     private static final int IV_LENGTH = 12;
     private static final int SALT_LENGTH = 16;
 
+    // 复用 SecureRandom 实例以提高性能
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     /**
      * 加密配置值
      *
@@ -151,7 +154,7 @@ public class CryptoUtil {
      */
     private static byte[] generateRandomBytes(int length) {
         byte[] bytes = new byte[length];
-        new SecureRandom().nextBytes(bytes);
+        SECURE_RANDOM.nextBytes(bytes);
         return bytes;
     }
 

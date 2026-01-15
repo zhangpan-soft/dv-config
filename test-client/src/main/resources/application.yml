@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: test-client
+  cloud:
+    gateway:
+      routes: [] # 初始为空，通过 config-server 动态加载
+
+netty:
+  client:
+    host: localhost
+    port: 8888
+    subscribe-namespaces:
+      - ${spring.application.name}
+      - common
+    refresh-namespaces:
+      - ${spring.application.name}
+      - common
+    has-route: true
+    config-poll-interval: 10000
+    route-poll-interval: 10000
+
+logging:
+  level:
+    com.dv.config: DEBUG

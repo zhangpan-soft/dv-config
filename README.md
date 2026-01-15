@@ -1,23 +1,27 @@
 # dv-config
 轻量级配置中心
-为了解决配置无法再后台管理系统直接管理问题,以及需要引入配置中间件问题.
-在实际项目中,往往有很多动态配置需要运营或者产品去动态调整的,核心目的就是为了解决此统一问题.
+
+为了解决配置无法在后台管理系统直接管理的问题，以及避免引入过重的配置中间件。
+在实际项目中，往往有很多动态配置需要运营或者产品去动态调整，核心目的就是为了统一解决此问题。
 
 # 服务端使用
-1. 随便一个springboot项目, 引入`server`模块, 引入你自己的 `api` 模块的实现即可
+1. 任意 Spring Boot 项目，引入 `server` 模块。
+2. 引入你自己的 `api` 模块实现，或者直接使用默认的数据库实现 `default-api-impl` 模块。
 
 # 客户端使用
-1. 随便一个springboot项目, 引入`client`模块
+1. 任意 Spring Boot 项目，引入 `client` 模块。
 
-# 配置
+# 配置说明
+
 ### SERVER 端配置项
 ```yaml
 netty:
   server:
-    port: ${NETTY_PORT:8888} # netty服务端口
-    boss-thread-count: ${NETTY_BOSS_THREAD_COUNT:1} # netty服务线程数
-    worker-thread-count: ${NETTY_WORKER_THREAD_COUNT:4} # netty服务工作线程数
-    # 加密配置
+    port: ${NETTY_PORT:8888} # Netty服务端口
+    boss-thread-count: ${NETTY_BOSS_THREAD_COUNT:1} # Boss线程数
+    worker-thread-count: ${NETTY_WORKER_THREAD_COUNT:4} # Worker线程数
+    idle-timeout: 65 # 客户端心跳超时时间(秒)
+  # 加密配置
   crypto:
     enabled: false # 是否启用
     master-key: ${CRYPTO_MASTER_KEY:}  # 加密的主key
@@ -31,8 +35,8 @@ netty:
 # Netty客户端配置
 netty:
   client:
-    host: localhost # netty服务端的地址
-    port: 8888 # netty服务端的端口
+    host: localhost # Netty服务端的地址
+    port: 8888 # Netty服务端的端口
     # 需要订阅的命名空间
     subscribe-namespaces:
       - ${spring.application.name}
@@ -40,11 +44,16 @@ netty:
       - exception
       - messages
     max-attempts: 10 # 重连最大次数
-    initial-delay: 15000 # 初始重连间隔
-    max-delay: 300000 # 最大重连间隔
-    has-route: true # 是否启用路由订阅
-    # 需要刷新的命名空间, 注意: 此处订阅刷新后, 会发送配置刷新的事件`com.dv.config.client.event.ConfigRefreshEvent` 或路由舒心事件`com.dv.config.client.event.RouteRefreshEvent`
-    # 无论是否有订阅刷新的命名空间, 当订阅的命名空间有配置改变, 都会刷新springboot的当前环境变量(Environment), 使用Environment#getProperty 会得到最新配置
+    initial-delay: 15000 # 初始重连间隔(ms)
+    max-delay: 300000 # 最大重连间隔(ms)
+    has-route: true # 是否启用路由订阅 (Gateway需开启)
+    config-poll-interval: 60000 # 配置轮询间隔(ms)
+    route-poll-interval: 60000 # 路由轮询间隔(ms)
+    
+    # 需要刷新的命名空间
+    # 注意: 此处订阅刷新后, 会发送配置刷新事件 `com.dv.config.client.event.ConfigRefreshEvent` 
+    # 或路由刷新事件 `com.dv.config.client.event.RouteRefreshEvent`
+    # 无论是否有订阅刷新的命名空间, 当订阅的命名空间有配置改变, 都会刷新 Spring Boot 的当前环境变量(Environment)
     refresh-namespaces:
       - casino-gateway
       - common
@@ -57,7 +66,8 @@ netty:
     iterations: 65536 # 加密迭代次数
 ```
 
-### default-api-impl 配置
+### default-api-impl 配置 (基于数据库的默认实现)
+如果使用了 `default-api-impl` 模块，需要配置数据库相关信息：
 ```yaml
 mybatis-plus:
   configuration:
@@ -87,18 +97,22 @@ spring:
       minimum-idle: 1
       maximum-pool-size: 10
 ```
+
 # 注意事项
-1. 加密算法只提供256位AES-GCM
-2. client接到server端数据才会解密, server端数据不会解密
-3. client在解密时, 如果格式值格式不是加密后的json字符串, 会按明文处理
+1. 加密算法只提供 256位 AES-GCM。
+2. Client 接到 Server 端数据才会解密，Server 端数据存储和传输时保持原样（如果是加密存储则传输加密值）。
+3. Client 在解密时，如果配置值格式不是加密后的 JSON 字符串，会按明文处理。
 
 # 其他说明
-1. 配置的加载会在springboot服务启动前就开始加载, 因此像数据库等信息可以使用client加载
-2. 如果需要使用spring cloud的配置刷新机制,请监听配置刷新事件, 并配合 spring cloud刷新机制, 路由同理
-3. 在实现 api 时, 如果需要刷新配置或路由, 请在配置或路由变更时, 触发刷新 `com.dv.config.server.handler.NettyConfigHandler#refresh`或`com.dv.config.server.handler.NettyRouteHandler#refresh`
+1. 配置的加载会在 Spring Boot 服务启动前就开始加载，因此像数据库等信息可以使用 Client 加载。
+2. 如果需要使用 Spring Cloud 的配置刷新机制，请监听配置刷新事件，并配合 Spring Cloud 刷新机制（`ContextRefresher`），路由同理。
+3. 在实现 API 时，如果需要刷新配置或路由，请在配置或路由变更时，触发刷新：
+   - `com.dv.config.server.handler.NettyConfigHandler#refresh`
+   - `com.dv.config.server.handler.NettyRouteHandler#refresh`
 
+# 使用示例
 
-### 客户端动态配置
+### 1. 客户端动态配置监听
 ```java
 /**
  * 配置刷新监听器
@@ -113,7 +127,6 @@ public class ConfigRefreshListener implements ApplicationListener<ConfigRefreshE
 
     @Override
     public void onApplicationEvent(@Nonnull ConfigRefreshEvent event) {
-
         // 如果有 ContextRefresher（Spring Cloud Context），触发刷新
         // 这会刷新所有 @RefreshScope 的 Bean 和 @ConfigurationProperties
         if (contextRefresher != null) {
@@ -131,7 +144,7 @@ public class ConfigRefreshListener implements ApplicationListener<ConfigRefreshE
 }
 ```
 
-### 客户端动态路由
+### 2. 客户端动态路由监听 (Gateway)
 ```java
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
@@ -155,7 +168,6 @@ public class RouteRefreshListener implements ApplicationListener<RouteRefreshEve
     @Override
     public void onApplicationEvent(@Nonnull RouteRefreshEvent event) {
         log.info("接收到路由更新事件");
-
         try {
             applicationContext.publishEvent(new RefreshRoutesEvent(this));
         } catch (Exception e) {
@@ -164,6 +176,8 @@ public class RouteRefreshListener implements ApplicationListener<RouteRefreshEve
     }
 }
 ```
+
+### 3. 路由定义加载器 (Gateway)
 ```java
 import org.springframework.boot.context.properties.bind.BindResult;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -187,9 +201,10 @@ public class EnvironmentRouteDefinitionLocator implements RouteDefinitionLocator
 
     @Override
     public Flux<RouteDefinition> getRouteDefinitions() {
-        BindResult<List<RouteDefinition>> bindResult = Binder.get(environment).bind("spring.cloud.gateway.routes", Bindable.listOf(RouteDefinition.class));
+        // 从 Environment 中读取 spring.cloud.gateway.routes 配置
+        BindResult<List<RouteDefinition>> bindResult = Binder.get(environment)
+                .bind("spring.cloud.gateway.routes", Bindable.listOf(RouteDefinition.class));
         return Flux.fromStream(bindResult.get().stream());
     }
 }
-
 ```

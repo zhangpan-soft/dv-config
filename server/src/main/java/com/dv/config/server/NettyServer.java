@@ -51,8 +51,8 @@ public class NettyServer {
                     @Override
                     protected void initChannel(SocketChannel ch) {
                         ch.pipeline()
-                                // 空闲状态检测 (65秒，略大于客户端轮询间隔)
-                                .addLast(new IdleStateHandler(65, 0, 0, TimeUnit.SECONDS))
+                                // 空闲状态检测 (使用配置的超时时间)
+                                .addLast(new IdleStateHandler(nettyServerProperties.getIdleTimeout(), 0, 0, TimeUnit.SECONDS))
                                 // 编解码器
                                 .addLast(new MessageDecoder())
                                 .addLast(new MessageEncoder())
