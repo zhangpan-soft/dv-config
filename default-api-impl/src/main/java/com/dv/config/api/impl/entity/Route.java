@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @Data
-@TableName("route")
+@TableName(value = "route", autoResultMap = true)
 @Accessors(chain = true)
 public class Route implements RouteDefinition {
     @TableId(value = "id", type = IdType.INPUT)
@@ -22,15 +22,18 @@ public class Route implements RouteDefinition {
     
     @TableField(value = "`uri`")
     private String uri;
+    
     @TableField(value = "`predicates`", typeHandler = JacksonTypeHandler.class)
     private List<Predicate> predicates;
+    
     @TableField(value = "`filters`", typeHandler = JacksonTypeHandler.class)
     private List<Filter> filters;
+
     @TableField(value = "`metadata`", typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> metadata;
     
     @TableField(value = "`order_num`")
-    private Integer orderNum; // 修改字段名，避开关键字 order
+    private Integer orderNum;
     
     @TableField(value = "`enabled`")
     private boolean enabled;

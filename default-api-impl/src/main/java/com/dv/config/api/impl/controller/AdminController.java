@@ -2,6 +2,7 @@ package com.dv.config.api.impl.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.dv.config.api.impl.convertor.RouteConvertor;
 import com.dv.config.api.impl.dto.ConfigDraftBatchDTO;
 import com.dv.config.api.impl.dto.DraftDiffVO;
 import com.dv.config.api.impl.dto.RouteDraftDTO;
@@ -11,23 +12,22 @@ import com.dv.config.api.impl.mapper.ConfigMapper;
 import com.dv.config.api.impl.mapper.RouteMapper;
 import com.dv.config.api.impl.service.ConfigDraftService;
 import com.dv.config.api.impl.service.RouteDraftService;
+import com.dv.config.common.IResponse;
 import com.dv.config.common.JsonUtil;
 import com.dv.config.common.crypto.CryptoProperties;
 import com.dv.config.common.crypto.CryptoUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+@Slf4j
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
@@ -43,10 +43,17 @@ public class AdminController {
     @Resource
     private CryptoProperties cryptoProperties;
 
-    // ================== Config ==================
+    // SPA 入口
+    @GetMapping({"", "/", "/config/**", "/route/**"})
+    public String index() {
+        return "admin/index";
+    }
 
-    @GetMapping("/config")
-    public String configList(@RequestParam(required = false) String keyword, Model model) {
+    // ================== Config API ==================
+
+    @GetMapping("/api/config/list")
+    @ResponseBody
+    public IResponse<List<Config>> configListApi(@RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<Config> query = Wrappers.lambdaQuery(Config.class);
         if (StringUtils.hasText(keyword)) {
             query.and(q -> q.like(Config::getKey, keyword)
@@ -54,58 +61,48 @@ public class AdminController {
                     .or().like(Config::getValue, keyword)
                     .or().like(Config::getDescription, keyword));
         }
-        List<Config> configs = configMapper.selectList(query);
-        model.addAttribute("configs", configs);
-        model.addAttribute("keyword", keyword);
-        model.addAttribute("activeMenu", "config");
-        return "config/list";
+        return IResponse.ok(configMapper.selectList(query));
     }
 
-    @GetMapping("/config/drafts")
-    public String configDrafts(Model model) {
-        List<ConfigDraft> drafts = configDraftService.listDrafts();
-        model.addAttribute("drafts", drafts);
-        model.addAttribute("activeMenu", "config-drafts");
-        return "config/drafts";
-    }
-    
-    @GetMapping("/config/diff")
-    public String configDiff(Model model) {
-        List<DraftDiffVO> diffs = configDraftService.getDiffs();
-        model.addAttribute("diffs", diffs);
-        model.addAttribute("activeMenu", "config-drafts"); // 归属到 Drafts 菜单
-        return "config/diff";
-    }
-    
-    @GetMapping("/config/history")
-    public String configHistoryList(Model model) {
-        List<ConfigHistory> historyList = configDraftService.listAllHistory();
-        model.addAttribute("historyList", historyList);
-        model.addAttribute("activeMenu", "config-history");
-        return "config/history";
-    }
-
-    @PostMapping("/config/save")
-    public String saveConfigDraft(ConfigDraft draft, RedirectAttributes redirectAttributes) {
-        saveConfigDraftLogic(draft);
-        redirectAttributes.addFlashAttribute("message", "Draft saved successfully!");
-        return "redirect:/admin/config";
-    }
-    
-    @PostMapping("/config/save/api")
+    @GetMapping("/api/config/drafts")
     @ResponseBody
-    public ResponseEntity<?> saveConfigDraftApi(ConfigDraft draft) {
-        saveConfigDraftLogic(draft);
-        return ResponseEntity.ok(Map.of("success", true));
+    public IResponse<List<ConfigDraft>> configDraftsApi() {
+        return IResponse.ok(configDraftService.listDrafts());
+    }
+    
+    @GetMapping("/api/config/diff")
+    @ResponseBody
+    public IResponse<List<DraftDiffVO>> configDiffApi() {
+        return IResponse.ok(configDraftService.getDiffs());
+    }
+    
+    @GetMapping("/api/config/history")
+    @ResponseBody
+    public IResponse<List<ConfigHistory>> configHistoryListApi() {
+        return IResponse.ok(configDraftService.listAllHistory());
+    }
+
+    @PostMapping("/api/config/save")
+    @ResponseBody
+    public IResponse<?> saveConfigDraftApi(@RequestBody ConfigDraft draft) {
+        try {
+            saveConfigDraftLogic(draft);
+            return IResponse.ok();
+        } catch (Exception e) {
+            log.error("Failed to save config draft", e);
+            return IResponse.fail(500, e.getMessage());
+        }
     }
     
     private void saveConfigDraftLogic(ConfigDraft draft) {
-        // 自动判断是否加密
         if (CryptoUtil.isEncrypted(draft.getValue())) {
             draft.setEncrypted(true);
+        } else {
+            draft.setEncrypted(false);
         }
         
-        if ("UPDATE".equals(draft.getOperationType()) || "DELETE".equals(draft.getOperationType())) {
+        if ("UPDATE".equals(draft.getOperationType())
+                || "DELETE".equals(draft.getOperationType())) {
             if (draft.getConfigId() == null) {
                 Config exist = configMapper.selectOne(Wrappers.lambdaQuery(Config.class)
                         .eq(Config::getNamespace, draft.getNamespace())
@@ -118,18 +115,16 @@ public class AdminController {
         configDraftService.saveDraft(draft);
     }
     
-    @PostMapping("/config/saveBatch")
-    public String saveConfigDraftBatch(ConfigDraftBatchDTO batchDTO, RedirectAttributes redirectAttributes) {
-        saveConfigDraftBatchLogic(batchDTO);
-        redirectAttributes.addFlashAttribute("message", "Batch drafts saved successfully!");
-        return "redirect:/admin/config";
-    }
-    
-    @PostMapping("/config/saveBatch/api")
+    @PostMapping("/api/config/saveBatch")
     @ResponseBody
-    public ResponseEntity<?> saveConfigDraftBatchApi(ConfigDraftBatchDTO batchDTO) {
-        saveConfigDraftBatchLogic(batchDTO);
-        return ResponseEntity.ok(Map.of("success", true));
+    public IResponse<?> saveConfigDraftBatchApi(@RequestBody ConfigDraftBatchDTO batchDTO) {
+        try {
+            saveConfigDraftBatchLogic(batchDTO);
+            return IResponse.ok();
+        } catch (Exception e) {
+            log.error("Failed to save config draft batch", e);
+            return IResponse.fail(500, e.getMessage());
+        }
     }
 
     private void saveConfigDraftBatchLogic(ConfigDraftBatchDTO batchDTO) {
@@ -139,6 +134,8 @@ public class AdminController {
                     .peek(d -> {
                         if (CryptoUtil.isEncrypted(d.getValue())) {
                             d.setEncrypted(true);
+                        } else {
+                            d.setEncrypted(false);
                         }
                     })
                     .toList();
@@ -146,58 +143,59 @@ public class AdminController {
         }
     }
     
-    @PostMapping("/config/encrypt")
+    @PostMapping("/api/config/encrypt")
     @ResponseBody
-    public ResponseEntity<?> encryptConfig(@RequestParam String value) {
+    public IResponse<?> encryptConfig(@RequestParam String value) {
         if (!StringUtils.hasText(value)) {
-            return ResponseEntity.badRequest().body("Value cannot be empty");
+            return IResponse.fail(400, "Value cannot be empty");
         }
         try {
             String encrypted = CryptoUtil.encrypt(value, cryptoProperties.getMasterKey(), cryptoProperties.getIterations());
-            return ResponseEntity.ok(Map.of("encrypted", encrypted));
+            return IResponse.ok(Map.of("encrypted", encrypted));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Encryption failed: " + e.getMessage());
+            return IResponse.fail(500, "Encryption failed: " + e.getMessage());
         }
     }
 
-    @PostMapping("/config/publish")
-    public String publishConfig(RedirectAttributes redirectAttributes) {
+    @PostMapping("/api/config/publish")
+    @ResponseBody
+    public IResponse<?> publishConfig() {
         configDraftService.publishAll();
-        redirectAttributes.addFlashAttribute("message", "All drafts published successfully!");
-        return "redirect:/admin/config";
+        return IResponse.ok();
     }
     
-    @GetMapping("/config/discard/{id}")
-    public String discardConfigDraft(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    @GetMapping("/api/config/discard/{id}")
+    @ResponseBody
+    public IResponse<?> discardConfigDraft(@PathVariable Long id) {
         configDraftService.discardDraft(id);
-        redirectAttributes.addFlashAttribute("message", "Draft discarded.");
-        return "redirect:/admin/config/drafts";
+        return IResponse.ok();
     }
     
-    @GetMapping("/config/history/{configId}")
+    @GetMapping("/api/config/history/{configId}")
     @ResponseBody
-    public List<ConfigHistory> configHistory(@PathVariable Long configId) {
-        return configDraftService.listHistory(configId);
+    public IResponse<List<ConfigHistory>> configHistory(@PathVariable Long configId) {
+        return IResponse.ok(configDraftService.listHistory(configId));
     }
     
-    @PostMapping("/config/rollback/{historyId}")
-    public String rollbackConfig(@PathVariable Long historyId, RedirectAttributes redirectAttributes) {
+    @PostMapping("/api/config/rollback/{historyId}")
+    @ResponseBody
+    public IResponse<?> rollbackConfig(@PathVariable Long historyId) {
         configDraftService.rollback(historyId);
-        redirectAttributes.addFlashAttribute("message", "Rollback draft created!");
-        return "redirect:/admin/config";
+        return IResponse.ok();
     }
     
-    @PostMapping("/config/rollbackBatch")
+    @PostMapping("/api/config/rollbackBatch")
     @ResponseBody
-    public ResponseEntity<?> rollbackConfigBatch(@RequestParam("historyIds") List<Long> historyIds) {
+    public IResponse<?> rollbackConfigBatch(@RequestBody List<Long> historyIds) {
         configDraftService.rollbackBatch(historyIds);
-        return ResponseEntity.ok(Map.of("success", true));
+        return IResponse.ok();
     }
 
-    // ================== Route ==================
+    // ================== Route API ==================
 
-    @GetMapping("/route")
-    public String routeList(@RequestParam(required = false) String keyword, Model model) {
+    @GetMapping("/api/route/list")
+    @ResponseBody
+    public IResponse<List<RouteVO>> routeListApi(@RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<Route> query = Wrappers.lambdaQuery(Route.class);
         if (StringUtils.hasText(keyword)) {
             query.and(q -> q.like(Route::getId, keyword)
@@ -205,108 +203,103 @@ public class AdminController {
                     .or().like(Route::getDescription, keyword));
         }
         List<Route> routes = routeMapper.selectList(query);
-        List<RouteVO> routeVOs = routes.stream().map(RouteVO::from).collect(Collectors.toList());
-        model.addAttribute("routes", routeVOs);
-        model.addAttribute("keyword", keyword);
-        model.addAttribute("activeMenu", "route");
-        return "route/list";
-    }
-    
-    @GetMapping("/route/drafts")
-    public String routeDrafts(Model model) {
-        List<RouteDraft> drafts = routeDraftService.listDrafts();
-        model.addAttribute("drafts", drafts);
-        model.addAttribute("activeMenu", "route-drafts");
-        return "route/drafts";
-    }
-    
-    @GetMapping("/route/diff")
-    public String routeDiff(Model model) {
-        List<DraftDiffVO> diffs = routeDraftService.getDiffs();
-        model.addAttribute("diffs", diffs);
-        model.addAttribute("activeMenu", "route-drafts");
-        return "route/diff";
-    }
-    
-    @GetMapping("/route/history")
-    public String routeHistoryList(Model model) {
-        List<RouteHistory> historyList = routeDraftService.listAllHistory();
-        model.addAttribute("historyList", historyList);
-        model.addAttribute("activeMenu", "route-history");
-        return "route/history";
+        return IResponse.ok(routes.stream().map(RouteConvertor.INSTANCE::toVo).toList());
     }
 
-    @PostMapping("/route/save")
-    public String saveRouteDraft(RouteDraftDTO dto, RedirectAttributes redirectAttributes) {
-        saveRouteDraftLogic(dto);
-        redirectAttributes.addFlashAttribute("message", "Route draft saved successfully!");
-        return "redirect:/admin/route";
+    @GetMapping("/api/route/drafts")
+    @ResponseBody
+    public IResponse<List<RouteDraft>> routeDraftsApi() {
+        return IResponse.ok(routeDraftService.listDrafts());
     }
     
-    @PostMapping("/route/save/api")
+    @GetMapping("/api/route/diff")
     @ResponseBody
-    public ResponseEntity<?> saveRouteDraftApi(RouteDraftDTO dto) {
-        saveRouteDraftLogic(dto);
-        return ResponseEntity.ok(Map.of("success", true));
+    public IResponse<List<DraftDiffVO>> routeDiffApi() {
+        return IResponse.ok(routeDraftService.getDiffs());
+    }
+
+    @GetMapping("/api/route/history")
+    @ResponseBody
+    public IResponse<List<RouteHistory>> routeHistoryListApi() {
+        return IResponse.ok(routeDraftService.listAllHistory());
+    }
+
+    @PostMapping("/api/route/save")
+    @ResponseBody
+    public IResponse<?> saveRouteDraftApi(@RequestBody RouteDraftDTO dto) {
+        try {
+            saveRouteDraftLogic(dto);
+            return IResponse.ok();
+        } catch (Exception e) {
+            log.error("Failed to save route draft", e);
+            return IResponse.fail(500, e.getMessage());
+        }
     }
 
     private void saveRouteDraftLogic(RouteDraftDTO dto) {
         RouteDraft draft = new RouteDraft();
         BeanUtils.copyProperties(dto, draft);
         
+        // 显式解析 JSON，并处理异常
         if (StringUtils.hasText(dto.getPredicatesJson())) {
             try {
                 draft.setPredicates(JsonUtil.fromJson(dto.getPredicatesJson(), new TypeReference<>() {}));
             } catch (Exception e) {
+                log.error("Invalid Predicates JSON: {}", dto.getPredicatesJson(), e);
+                throw new IllegalArgumentException("Invalid Predicates JSON format");
             }
         }
         if (StringUtils.hasText(dto.getFiltersJson())) {
             try {
                 draft.setFilters(JsonUtil.fromJson(dto.getFiltersJson(), new TypeReference<>() {}));
             } catch (Exception e) {
+                log.error("Invalid Filters JSON: {}", dto.getFiltersJson(), e);
+                throw new IllegalArgumentException("Invalid Filters JSON format");
             }
         }
         if (StringUtils.hasText(dto.getMetadataJson())) {
             try {
                 draft.setMetadata(JsonUtil.fromJson(dto.getMetadataJson(), new TypeReference<>() {}));
             } catch (Exception e) {
+                log.error("Invalid Metadata JSON: {}", dto.getMetadataJson(), e);
+                throw new IllegalArgumentException("Invalid Metadata JSON format");
             }
         }
 
         routeDraftService.saveDraft(draft);
     }
 
-    @PostMapping("/route/publish")
-    public String publishRoute(RedirectAttributes redirectAttributes) {
+    @PostMapping("/api/route/publish")
+    @ResponseBody
+    public IResponse<?> publishRoute() {
         routeDraftService.publishAll();
-        redirectAttributes.addFlashAttribute("message", "All route drafts published successfully!");
-        return "redirect:/admin/route";
+        return IResponse.ok();
     }
     
-    @GetMapping("/route/discard/{id}")
-    public String discardRouteDraft(@PathVariable String id, RedirectAttributes redirectAttributes) {
+    @GetMapping("/api/route/discard/{id}")
+    @ResponseBody
+    public IResponse<?> discardRouteDraft(@PathVariable String id) {
         routeDraftService.discardDraft(id);
-        redirectAttributes.addFlashAttribute("message", "Route draft discarded.");
-        return "redirect:/admin/route/drafts";
+        return IResponse.ok();
     }
     
-    @GetMapping("/route/history/{routeId}")
+    @GetMapping("/api/route/history/{routeId}")
     @ResponseBody
-    public List<RouteHistory> routeHistory(@PathVariable String routeId) {
-        return routeDraftService.listHistory(routeId);
+    public IResponse<List<RouteHistory>> routeHistory(@PathVariable String routeId) {
+        return IResponse.ok(routeDraftService.listHistory(routeId));
     }
     
-    @PostMapping("/route/rollback/{historyId}")
-    public String rollbackRoute(@PathVariable Long historyId, RedirectAttributes redirectAttributes) {
+    @PostMapping("/api/route/rollback/{historyId}")
+    @ResponseBody
+    public IResponse<?> rollbackRoute(@PathVariable Long historyId) {
         routeDraftService.rollback(historyId);
-        redirectAttributes.addFlashAttribute("message", "Rollback draft created!");
-        return "redirect:/admin/route";
+        return IResponse.ok();
     }
     
-    @PostMapping("/route/rollbackBatch")
+    @PostMapping("/api/route/rollbackBatch")
     @ResponseBody
-    public ResponseEntity<?> rollbackRouteBatch(@RequestParam("historyIds") List<Long> historyIds) {
+    public IResponse<?> rollbackRouteBatch(@RequestBody List<Long> historyIds) {
         routeDraftService.rollbackBatch(historyIds);
-        return ResponseEntity.ok(Map.of("success", true));
+        return IResponse.ok();
     }
 }

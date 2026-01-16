@@ -2,8 +2,8 @@ package com.dv.config.api.impl.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.dv.config.api.event.RoutePublishEvent;
+import com.dv.config.api.impl.convertor.RouteConvertor;
 import com.dv.config.api.impl.dto.DraftDiffVO;
-import com.dv.config.api.impl.dto.RouteVO;
 import com.dv.config.api.impl.entity.Route;
 import com.dv.config.api.impl.entity.RouteDraft;
 import com.dv.config.api.impl.entity.RouteHistory;
@@ -78,12 +78,12 @@ public class RouteDraftService {
             
             Route tempRoute = new Route();
             BeanUtils.copyProperties(draft, tempRoute);
-            diff.setNewValue(JsonUtil.toJson(RouteVO.from(tempRoute)));
+            diff.setNewValue(JsonUtil.toJson(RouteConvertor.INSTANCE.toVo(tempRoute)));
             
             if ("UPDATE".equals(draft.getOperationType()) || "DELETE".equals(draft.getOperationType())) {
                 Route original = routeMapper.selectById(draft.getId());
                 if (original != null) {
-                    diff.setOldValue(JsonUtil.toJson(RouteVO.from(original)));
+                    diff.setOldValue(JsonUtil.toJson(RouteConvertor.INSTANCE.toVo(original)));
                 }
             }
             

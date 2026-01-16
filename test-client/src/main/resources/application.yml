@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
@@ -14,11 +14,11 @@ netty:
     port: 8888
     subscribe-namespaces:
       - ${spring.application.name}
-      - common
+      - test
     refresh-namespaces:
       - ${spring.application.name}
-      - common
-    has-route: true
+      - test
+    has-route: false
     config-poll-interval: 10000
     route-poll-interval: 10000
 

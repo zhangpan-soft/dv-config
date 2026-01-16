@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @Data
-@TableName("route_history")
+@TableName(value = "route_history", autoResultMap = true)
 public class RouteHistory {
     @TableId(type = IdType.AUTO)
     private Long historyId;
@@ -24,15 +24,18 @@ public class RouteHistory {
     
     @TableField(value = "`uri`")
     private String uri;
+    
     @TableField(value = "`predicates`", typeHandler = JacksonTypeHandler.class)
     private List<Predicate> predicates;
+    
     @TableField(value = "`filters`", typeHandler = JacksonTypeHandler.class)
     private List<Filter> filters;
+
     @TableField(value = "`metadata`", typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> metadata;
     
     @TableField(value = "`order_num`")
-    private Integer orderNum; // 修改字段名
+    private Integer orderNum;
     
     @TableField(value = "`enabled`")
     private boolean enabled;
