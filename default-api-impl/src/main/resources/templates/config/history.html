@@ -1,45 +1,18 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{fragments/layout}">
 <head>
-    <title>Config History - DV Config</title>
-    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8f9fa; }
-        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
-        .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075); margin-bottom: 20px; }
-        .table th { font-weight: 600; color: #495057; }
-        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1060; }
-    </style>
+    <title th:text="#{history.title}">Config History</title>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand" href="#"><i class="fas fa-cogs me-2"></i>DV Config</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/config"><i class="fas fa-list me-1"></i>Config</a></li>
-                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/config/drafts"><i class="fas fa-edit me-1"></i>Config Drafts</a></li>
-                <li class="nav-item"><a class="nav-link active" href="/dv-config/admin/config/history"><i class="fas fa-history me-1"></i>History</a></li>
-                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/route"><i class="fas fa-route me-1"></i>Route</a></li>
-                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/route/drafts"><i class="fas fa-edit me-1"></i>Route Drafts</a></li>
-                <li class="nav-item"><a class="nav-link" href="/dv-config/admin/route/history"><i class="fas fa-history me-1"></i>Route History</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
 
-<div class="container">
+<div layout:fragment="content">
     <!-- Toast Container -->
     <div class="toast-container"></div>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-history me-2 text-primary"></i>Configuration History (Last 1000)</h2>
+        <h2><i class="fas fa-history me-2 text-primary"></i><span th:text="#{history.title}">Configuration History (Last 10)</span></h2>
         <button class="btn btn-warning" id="batchRollbackBtn" style="display: none;">
-            <i class="fas fa-undo me-1"></i>Batch Rollback
+            <i class="fas fa-undo me-1"></i><span th:text="#{history.btn.batch_rollback}">Batch Rollback</span>
         </button>
     </div>
 
@@ -51,14 +24,14 @@
                     <th class="ps-4" style="width: 40px;">
                         <input type="checkbox" class="form-check-input" id="selectAll">
                     </th>
-                    <th>Version</th>
-                    <th>Namespace</th>
-                    <th>Key</th>
-                    <th>Value</th>
-                    <th>Operation</th>
-                    <th>User</th>
-                    <th>Time</th>
-                    <th>Action</th>
+                    <th th:text="#{history.col.version}">Version</th>
+                    <th th:text="#{list.col.namespace}">Namespace</th>
+                    <th th:text="#{list.col.key}">Key</th>
+                    <th th:text="#{list.col.value}">Value</th>
+                    <th th:text="#{drafts.col.operation}">Operation</th>
+                    <th th:text="#{drafts.col.user}">User</th>
+                    <th th:text="#{list.col.time}">Time</th>
+                    <th th:text="#{list.col.actions}">Action</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -69,18 +42,21 @@
                     <td><span class="badge bg-secondary" th:text="${history.version}"></span></td>
                     <td th:text="${history.namespace}"></td>
                     <td class="fw-bold" th:text="${history.key}"></td>
-                    <td class="text-truncate" style="max-width: 200px;" th:text="${history.value}" th:title="${history.value}"></td>
+                    <td>
+                        <div class="text-truncate" style="max-width: 200px;" th:text="${history.value}" th:title="${history.value}"></div>
+                        <span th:if="${history.encrypted}" class="badge bg-warning text-dark" style="font-size: 0.7em;"><i class="fas fa-lock me-1"></i><span th:text="#{status.encrypted}">Encrypted</span></span>
+                    </td>
                     <td th:text="${history.operationType}"></td>
                     <td th:text="${history.createBy}"></td>
                     <td class="text-muted small" th:text="${#temporals.format(history.createTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
                     <td>
-                        <form action="/dv-config/admin/config/rollback/${history.historyId}" method="post" class="d-inline" onsubmit="return confirm('Rollback to this version?')">
-                            <button type="submit" class="btn btn-sm btn-outline-warning">Rollback</button>
+                        <form action="/dv-config/admin/config/rollback/${history.historyId}" method="post" class="d-inline" onsubmit="return confirm(msgConfirmRollback)">
+                            <button type="submit" class="btn btn-sm btn-outline-warning" th:text="#{history.btn.rollback}">Rollback</button>
                         </form>
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(historyList)}">
-                    <td colspan="9" class="text-center py-4 text-muted">No history found.</td>
+                    <td colspan="9" class="text-center py-4 text-muted" th:text="#{history.empty}">No history found.</td>
                 </tr>
                 </tbody>
             </table>
@@ -88,9 +64,13 @@
     </div>
 </div>
 
-<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
-<script>
+<th:block layout:fragment="scripts">
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const msgConfirmRollback = /*[[#{msg.confirm.rollback}]]*/ 'Rollback to this version?';
+    const msgSuccessRollback = /*[[#{msg.success.rollback}]]*/ 'Rollback draft created!';
+    /*]]>*/
+
     function showToast(message, type = 'success') {
         const toastHtml = `
             <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -129,7 +109,7 @@
 
         // Batch Rollback
         $('#batchRollbackBtn').click(function() {
-            if (!confirm('Are you sure to rollback selected versions? (Will create UPDATE drafts)')) return;
+            if (!confirm(msgConfirmRollback)) return;
 
             const historyIds = [];
             $('.row-checkbox:checked').each(function() {
@@ -137,7 +117,7 @@
             });
 
             $.post('/dv-config/admin/config/rollbackBatch', { historyIds: historyIds.join(',') }, function(response) {
-                showToast('Batch rollback drafts created successfully!');
+                showToast(msgSuccessRollback);
                 setTimeout(() => window.location.href = '/dv-config/admin/config/drafts', 1000);
             }).fail(function() {
                 showToast('Failed to create rollback drafts.', 'danger');
@@ -145,5 +125,6 @@
         });
     });
 </script>
+</th:block>
 </body>
 </html>

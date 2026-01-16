@@ -100,6 +100,10 @@ spring:
     hikari:
       minimum-idle: 1
       maximum-pool-size: 10
+  
+  # 国际化配置 (可选)
+  web:
+    locale: zh_CN # 默认语言: zh_CN 或 en_US
 
 # 启用管理 UI (可选)
 dv:
@@ -109,15 +113,42 @@ dv:
 ```
 
 # 管理 UI 功能
-`default-api-impl` 模块提供了一个轻量级的管理界面，支持：
-1. **配置管理**: 增删改查、草稿机制、历史记录、一键回滚、批量操作（启用/禁用/删除）。
-2. **路由管理**: 动态路由配置、JSON 编辑、草稿与发布流程、历史记录与回滚。
-3. **差异对比**: 发布前对比草稿与线上配置的差异。
-4. **权限集成**: 通过实现 `UserProvider` 接口对接自定义用户系统。
+`default-api-impl` 模块提供了一个功能完善的轻量级管理界面，无需额外开发即可开箱即用。
 
-访问地址:
-- Config: `/dv-config/admin/config`
-- Route: `/dv-config/admin/route`
+### 1. 核心特性
+*   **草稿机制 (Draft)**: 所有的修改（增删改）首先保存为草稿，不会立即影响线上环境。
+*   **发布流程 (Publish)**: 确认草稿无误后，一键发布到线上，并自动推送给所有客户端。
+*   **差异对比 (Diff)**: 在发布前，提供直观的左右分栏视图，对比草稿与线上配置的差异（新增、修改、删除）。
+*   **历史记录与回滚**: 每次发布都会自动生成版本快照（保留最近 10 个版本）。支持查看历史详情，并支持**一键回滚**（包括批量回滚）。
+*   **加密支持**: 提供在线加密工具，敏感配置可一键加密保存。系统自动识别加密值并在界面上标识（不提供解密查看）。
+
+### 2. 配置管理 (Config)
+*   **列表与筛选**: 支持按 Namespace、Key、Value、Description 进行模糊搜索。
+*   **批量操作**: 支持批量添加、批量修改、批量删除、批量启用/禁用。
+*   **加密**: 在添加/修改时，点击锁图标即可将明文加密为密文保存。
+
+### 3. 路由管理 (Route)
+*   **动态路由**: 支持 Spring Cloud Gateway 动态路由配置。
+*   **JSON 编辑**: 提供友好的 JSON 编辑框，用于配置 Predicates、Filters 和 Metadata。
+*   **完整流程**: 同样支持草稿、发布、历史和回滚流程。
+
+### 4. 访问地址
+*   配置管理: `/admin/config`
+*   路由管理: `/admin/route`
+
+### 5. 权限集成
+管理 UI 不内置用户系统，而是通过 `UserProvider` 接口获取当前操作人信息。
+你可以实现该接口并注册为 Bean，以对接你自己的认证系统（如 Spring Security, Shiro 或自定义 Session）。
+```java
+@Component
+public class MyUserProvider implements UserProvider {
+    @Override
+    public String getUserId() {
+        // 从你的上下文获取用户ID
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+}
+```
 
 # 注意事项
 1. 加密算法只提供 256位 AES-GCM。

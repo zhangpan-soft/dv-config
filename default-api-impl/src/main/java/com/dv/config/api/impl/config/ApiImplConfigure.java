@@ -45,6 +45,11 @@ public class ApiImplConfigure {
     public MybatisPlusInterceptor mybatisPlusInterceptor(@Value("${TABLE_NAME_CONFIG:config}") String configTableName,
                                                          @Value("${TABLE_NAME_ROUTE:route}") String routeTableName) {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+        
+        // 分页插件 (暂时注释，排查依赖问题)
+        // interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
+        
+        // 动态表名插件
         DynamicTableNameInnerInterceptor dynamicTableNameInterceptor = new DynamicTableNameInnerInterceptor((sql, tableName) -> {
             if ("config".equalsIgnoreCase(tableName)){
                 return configTableName;
@@ -70,5 +75,4 @@ public class ApiImplConfigure {
         interceptor.addInnerInterceptor(dynamicTableNameInterceptor);
         return interceptor;
     }
-
 }

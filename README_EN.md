@@ -110,15 +110,42 @@ dv:
 ```
 
 # Admin UI Features
-The `default-api-impl` module provides a lightweight management interface supporting:
-1. **Config Management**: CRUD, draft mechanism, history tracking, one-click rollback, batch operations (enable/disable/delete).
-2. **Route Management**: Dynamic route configuration, JSON editing, draft & publish workflow, history & rollback.
-3. **Diff View**: Compare drafts with live configurations before publishing.
-4. **Security Integration**: Integrate with custom user systems by implementing the `UserProvider` interface.
+The `default-api-impl` module provides a comprehensive lightweight management interface, ready to use out of the box.
 
-Access URLs:
-- Config: `/dv-config/admin/config`
-- Route: `/dv-config/admin/route`
+### 1. Core Features
+*   **Draft Mechanism**: All changes (add/update/delete) are first saved as drafts and do not affect the live environment immediately.
+*   **Publish Workflow**: Once drafts are reviewed, they can be published to live with one click, automatically pushing updates to all clients.
+*   **Diff View**: Before publishing, a side-by-side view shows the differences between drafts and live configurations (additions, modifications, deletions).
+*   **History & Rollback**: Every publish generates a version snapshot (keeping the last 10 versions). Supports viewing history details and **one-click rollback** (including batch rollback).
+*   **Encryption Support**: Provides an online encryption tool. Sensitive configurations can be encrypted with one click. The system automatically identifies encrypted values and marks them in the UI (decryption viewing is not provided).
+
+### 2. Config Management
+*   **List & Filter**: Supports fuzzy search by Namespace, Key, Value, and Description.
+*   **Batch Operations**: Supports batch add, modify, delete, enable, and disable.
+*   **Encryption**: Click the lock icon when adding/modifying to encrypt plaintext values.
+
+### 3. Route Management
+*   **Dynamic Routing**: Supports Spring Cloud Gateway dynamic route configuration.
+*   **JSON Editor**: Provides a friendly JSON editor for configuring Predicates, Filters, and Metadata.
+*   **Full Workflow**: Supports draft, publish, history, and rollback workflows as well.
+
+### 4. Access URLs
+*   Config Management: `/admin/config`
+*   Route Management: `/admin/route`
+
+### 5. Security Integration
+The Admin UI does not have a built-in user system. Instead, it uses the `UserProvider` interface to get the current operator's information.
+You can implement this interface and register it as a Bean to integrate with your own authentication system (e.g., Spring Security, Shiro, or custom Session).
+```java
+@Component
+public class MyUserProvider implements UserProvider {
+    @Override
+    public String getUserId() {
+        // Get user ID from your security context
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+}
+```
 
 # Important Notes
 1. The encryption algorithm only supports **AES-256-GCM**.

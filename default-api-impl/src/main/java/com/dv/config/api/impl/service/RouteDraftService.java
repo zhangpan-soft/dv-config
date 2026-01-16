@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -43,12 +44,12 @@ public class RouteDraftService {
     private StringRedisTemplate stringRedisTemplate;
 
     private static final String ROUTE_KEY = "com.dv.config.api.impl.gateway.RouteGatewayImpl_route";
+    private static final int MAX_HISTORY_VERSIONS = 10;
 
     public void saveDraft(RouteDraft draft) {
         draft.setUpdateBy(userProvider.getUserId());
         draft.setUpdateTime(LocalDateTime.now());
         
-        // 检查是否存在相同 ID 的草稿
         RouteDraft existing = routeDraftMapper.selectById(draft.getId());
         if (existing != null) {
             draft.setCreateTime(existing.getCreateTime());
@@ -75,7 +76,6 @@ public class RouteDraftService {
             diff.setKey(draft.getId());
             diff.setDiffType(draft.getOperationType());
             
-            // 将 RouteDraft 转为 JSON 作为 newValue
             Route tempRoute = new Route();
             BeanUtils.copyProperties(draft, tempRoute);
             diff.setNewValue(JsonUtil.toJson(RouteVO.from(tempRoute)));
@@ -121,11 +121,11 @@ public class RouteDraftService {
             saveHistory(draft, version, userId);
             routeDraftMapper.deleteById(draft.getId());
         }
+        
+        trimHistoryVersions();
 
-        // 清理缓存
         stringRedisTemplate.delete(ROUTE_KEY);
 
-        // 发布事件，通知 Server 模块刷新
         eventPublisher.publishEvent(new RoutePublishEvent(this));
     }
 
@@ -139,6 +139,21 @@ public class RouteDraftService {
         routeHistoryMapper.insert(history);
     }
     
+    private void trimHistoryVersions() {
+        // 修改为按 version 排序
+        List<Object> versions = routeHistoryMapper.selectObjs(Wrappers.<RouteHistory>query()
+                .select("DISTINCT version")
+                .orderByDesc("version"));
+        
+        if (versions.size() > MAX_HISTORY_VERSIONS) {
+            List<String> versionList = versions.stream().map(Object::toString).collect(Collectors.toList());
+            List<String> keepVersions = versionList.subList(0, MAX_HISTORY_VERSIONS);
+            
+            routeHistoryMapper.delete(Wrappers.lambdaQuery(RouteHistory.class)
+                    .notIn(RouteHistory::getVersion, keepVersions));
+        }
+    }
+    
     public void discardDraft(String draftId) {
         routeDraftMapper.deleteById(draftId);
     }
@@ -150,7 +165,12 @@ public class RouteDraftService {
     }
     
     public List<RouteHistory> listAllHistory() {
+        return listAllHistory(null);
+    }
+    
+    public List<RouteHistory> listAllHistory(String version) {
         return routeHistoryMapper.selectList(Wrappers.lambdaQuery(RouteHistory.class)
+                .eq(version != null && !version.trim().isEmpty(), RouteHistory::getVersion, version != null ? version.trim() : null)
                 .orderByDesc(RouteHistory::getCreateTime)
                 .last("LIMIT 1000"));
     }
@@ -177,7 +197,6 @@ public class RouteDraftService {
         BeanUtils.copyProperties(history, draft);
         draft.setId(history.getRouteId());
         
-        // 检查当前路由是否存在
         Route current = routeMapper.selectById(history.getRouteId());
         if (current == null) {
             draft.setOperationType("ADD");

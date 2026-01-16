@@ -5,6 +5,9 @@ TABLE_NAME_ROUTE: t_route
 spring:
   main:
     allow-bean-definition-overriding: true
+  
+  web:
+    locale: zh_CN # 默认使用中文
 
   liquibase:
     parameters:
@@ -29,6 +32,20 @@ spring:
     cache: false
     prefix: classpath:/templates/
     suffix: .html
+    encoding: UTF-8
+    mode: HTML
+    
+  # 国际化配置
+  messages:
+    encoding: UTF-8
+    basename: messages
+
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
 
 # Netty 服务端配置
 netty:
@@ -37,6 +54,10 @@ netty:
     boss-thread-count: 1
     worker-thread-count: 4
     idle-timeout: 65
+  # 加密配置
+  crypto:
+    enabled: true
+    master-key: "12345678901234567890123456789012" # 32位密钥
 
 # 启用管理 UI
 dv:

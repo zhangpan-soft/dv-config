@@ -12,6 +12,8 @@ import com.dv.config.api.impl.mapper.RouteMapper;
 import com.dv.config.api.impl.service.ConfigDraftService;
 import com.dv.config.api.impl.service.RouteDraftService;
 import com.dv.config.common.JsonUtil;
+import com.dv.config.common.crypto.CryptoProperties;
+import com.dv.config.common.crypto.CryptoUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
@@ -27,7 +29,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Controller
-@RequestMapping("/dv-config/admin")
+@RequestMapping("/admin")
 public class AdminController {
 
     @Resource
@@ -38,6 +40,8 @@ public class AdminController {
     private ConfigDraftService configDraftService;
     @Resource
     private RouteDraftService routeDraftService;
+    @Resource
+    private CryptoProperties cryptoProperties;
 
     // ================== Config ==================
 
@@ -53,6 +57,7 @@ public class AdminController {
         List<Config> configs = configMapper.selectList(query);
         model.addAttribute("configs", configs);
         model.addAttribute("keyword", keyword);
+        model.addAttribute("activeMenu", "config");
         return "config/list";
     }
 
@@ -60,6 +65,7 @@ public class AdminController {
     public String configDrafts(Model model) {
         List<ConfigDraft> drafts = configDraftService.listDrafts();
         model.addAttribute("drafts", drafts);
+        model.addAttribute("activeMenu", "config-drafts");
         return "config/drafts";
     }
     
@@ -67,6 +73,7 @@ public class AdminController {
     public String configDiff(Model model) {
         List<DraftDiffVO> diffs = configDraftService.getDiffs();
         model.addAttribute("diffs", diffs);
+        model.addAttribute("activeMenu", "config-drafts"); // 归属到 Drafts 菜单
         return "config/diff";
     }
     
@@ -74,6 +81,7 @@ public class AdminController {
     public String configHistoryList(Model model) {
         List<ConfigHistory> historyList = configDraftService.listAllHistory();
         model.addAttribute("historyList", historyList);
+        model.addAttribute("activeMenu", "config-history");
         return "config/history";
     }
 
@@ -81,7 +89,7 @@ public class AdminController {
     public String saveConfigDraft(ConfigDraft draft, RedirectAttributes redirectAttributes) {
         saveConfigDraftLogic(draft);
         redirectAttributes.addFlashAttribute("message", "Draft saved successfully!");
-        return "redirect:/dv-config/admin/config";
+        return "redirect:/admin/config";
     }
     
     @PostMapping("/config/save/api")
@@ -92,6 +100,11 @@ public class AdminController {
     }
     
     private void saveConfigDraftLogic(ConfigDraft draft) {
+        // 自动判断是否加密
+        if (CryptoUtil.isEncrypted(draft.getValue())) {
+            draft.setEncrypted(true);
+        }
+        
         if ("UPDATE".equals(draft.getOperationType()) || "DELETE".equals(draft.getOperationType())) {
             if (draft.getConfigId() == null) {
                 Config exist = configMapper.selectOne(Wrappers.lambdaQuery(Config.class)
@@ -109,7 +122,7 @@ public class AdminController {
     public String saveConfigDraftBatch(ConfigDraftBatchDTO batchDTO, RedirectAttributes redirectAttributes) {
         saveConfigDraftBatchLogic(batchDTO);
         redirectAttributes.addFlashAttribute("message", "Batch drafts saved successfully!");
-        return "redirect:/dv-config/admin/config";
+        return "redirect:/admin/config";
     }
     
     @PostMapping("/config/saveBatch/api")
@@ -123,8 +136,27 @@ public class AdminController {
         if (batchDTO.getDrafts() != null && !batchDTO.getDrafts().isEmpty()) {
             List<ConfigDraft> validDrafts = batchDTO.getDrafts().stream()
                     .filter(d -> d.getKey() != null && !d.getKey().isEmpty())
+                    .peek(d -> {
+                        if (CryptoUtil.isEncrypted(d.getValue())) {
+                            d.setEncrypted(true);
+                        }
+                    })
                     .toList();
             configDraftService.saveDrafts(validDrafts);
+        }
+    }
+    
+    @PostMapping("/config/encrypt")
+    @ResponseBody
+    public ResponseEntity<?> encryptConfig(@RequestParam String value) {
+        if (!StringUtils.hasText(value)) {
+            return ResponseEntity.badRequest().body("Value cannot be empty");
+        }
+        try {
+            String encrypted = CryptoUtil.encrypt(value, cryptoProperties.getMasterKey(), cryptoProperties.getIterations());
+            return ResponseEntity.ok(Map.of("encrypted", encrypted));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Encryption failed: " + e.getMessage());
         }
     }
 
@@ -132,14 +164,14 @@ public class AdminController {
     public String publishConfig(RedirectAttributes redirectAttributes) {
         configDraftService.publishAll();
         redirectAttributes.addFlashAttribute("message", "All drafts published successfully!");
-        return "redirect:/dv-config/admin/config";
+        return "redirect:/admin/config";
     }
     
     @GetMapping("/config/discard/{id}")
     public String discardConfigDraft(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         configDraftService.discardDraft(id);
         redirectAttributes.addFlashAttribute("message", "Draft discarded.");
-        return "redirect:/dv-config/admin/config/drafts";
+        return "redirect:/admin/config/drafts";
     }
     
     @GetMapping("/config/history/{configId}")
@@ -152,7 +184,7 @@ public class AdminController {
     public String rollbackConfig(@PathVariable Long historyId, RedirectAttributes redirectAttributes) {
         configDraftService.rollback(historyId);
         redirectAttributes.addFlashAttribute("message", "Rollback draft created!");
-        return "redirect:/dv-config/admin/config";
+        return "redirect:/admin/config";
     }
     
     @PostMapping("/config/rollbackBatch")
@@ -176,6 +208,7 @@ public class AdminController {
         List<RouteVO> routeVOs = routes.stream().map(RouteVO::from).collect(Collectors.toList());
         model.addAttribute("routes", routeVOs);
         model.addAttribute("keyword", keyword);
+        model.addAttribute("activeMenu", "route");
         return "route/list";
     }
     
@@ -183,6 +216,7 @@ public class AdminController {
     public String routeDrafts(Model model) {
         List<RouteDraft> drafts = routeDraftService.listDrafts();
         model.addAttribute("drafts", drafts);
+        model.addAttribute("activeMenu", "route-drafts");
         return "route/drafts";
     }
     
@@ -190,6 +224,7 @@ public class AdminController {
     public String routeDiff(Model model) {
         List<DraftDiffVO> diffs = routeDraftService.getDiffs();
         model.addAttribute("diffs", diffs);
+        model.addAttribute("activeMenu", "route-drafts");
         return "route/diff";
     }
     
@@ -197,6 +232,7 @@ public class AdminController {
     public String routeHistoryList(Model model) {
         List<RouteHistory> historyList = routeDraftService.listAllHistory();
         model.addAttribute("historyList", historyList);
+        model.addAttribute("activeMenu", "route-history");
         return "route/history";
     }
 
@@ -204,7 +240,7 @@ public class AdminController {
     public String saveRouteDraft(RouteDraftDTO dto, RedirectAttributes redirectAttributes) {
         saveRouteDraftLogic(dto);
         redirectAttributes.addFlashAttribute("message", "Route draft saved successfully!");
-        return "redirect:/dv-config/admin/route";
+        return "redirect:/admin/route";
     }
     
     @PostMapping("/route/save/api")
@@ -244,14 +280,14 @@ public class AdminController {
     public String publishRoute(RedirectAttributes redirectAttributes) {
         routeDraftService.publishAll();
         redirectAttributes.addFlashAttribute("message", "All route drafts published successfully!");
-        return "redirect:/dv-config/admin/route";
+        return "redirect:/admin/route";
     }
     
     @GetMapping("/route/discard/{id}")
     public String discardRouteDraft(@PathVariable String id, RedirectAttributes redirectAttributes) {
         routeDraftService.discardDraft(id);
         redirectAttributes.addFlashAttribute("message", "Route draft discarded.");
-        return "redirect:/dv-config/admin/route/drafts";
+        return "redirect:/admin/route/drafts";
     }
     
     @GetMapping("/route/history/{routeId}")
@@ -264,7 +300,7 @@ public class AdminController {
     public String rollbackRoute(@PathVariable Long historyId, RedirectAttributes redirectAttributes) {
         routeDraftService.rollback(historyId);
         redirectAttributes.addFlashAttribute("message", "Rollback draft created!");
-        return "redirect:/dv-config/admin/route";
+        return "redirect:/admin/route";
     }
     
     @PostMapping("/route/rollbackBatch")
