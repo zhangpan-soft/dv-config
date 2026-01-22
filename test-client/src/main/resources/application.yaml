@@ -1,0 +1,33 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: test-client
+  cloud:
+    gateway:
+      routes: []
+    compatibility-verifier:
+      enabled: false
+
+netty:
+  client:
+    host: localhost
+    port: 8888
+    subscribe-namespaces:
+      - ${spring.application.name}
+      - test
+    refresh-namespaces:
+      - ${spring.application.name}
+      - test
+    has-route: true
+    config-poll-interval: 10000
+    route-poll-interval: 10000
+  crypto:
+    enabled: true
+    master-key: ${MASTER_KEY:test}
+    current-version: v1
+
+logging:
+  level:
+    com.dv.config: DEBUG

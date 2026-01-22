@@ -1,6 +1,6 @@
 package com.dv.config.test.config;
 
-import com.dv.config.api.impl.security.UserProvider;
+import com.dv.config.server.impl.security.UserProvider;
 import org.springframework.stereotype.Component;
 
 @Component

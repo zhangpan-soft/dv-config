@@ -1,7 +1,7 @@
 package com.dv.config.client.netty;
 
+import com.dv.config.api.property.NettyClientProperties;
 import com.dv.config.client.config.DynamicPropertySource;
-import com.dv.config.common.netty.NettyClientProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ConfigurableBootstrapContext;
 import org.springframework.boot.SpringApplication;

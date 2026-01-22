@@ -1,9 +1,9 @@
 package com.dv.config.client.netty;
 
+import com.dv.config.api.dto.RouteDTO;
+import com.dv.config.api.json.JsonUtil;
+import com.dv.config.api.message.Message;
 import com.dv.config.client.config.DynamicPropertySource;
-import com.dv.config.common.JsonUtil;
-import com.dv.config.common.dto.RouteDTO;
-import com.dv.config.common.netty.Message;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 
@@ -74,7 +74,7 @@ public class RouteLoadHandler {
                 RouteDTO route = routes.get(i);
                 
                 // 基本路由属性
-                routePropertySource.setProperty("spring.cloud.gateway.routes[" + i + "].id", route.getRouteId());
+                routePropertySource.setProperty("spring.cloud.gateway.routes[" + i + "].id", route.getId());
                 routePropertySource.setProperty("spring.cloud.gateway.routes[" + i + "].uri", route.getUri());
                 if (route.getOrderNum() != null) {
                     routePropertySource.setProperty("spring.cloud.gateway.routes[" + i + "].order", route.getOrderNum());
@@ -88,7 +88,7 @@ public class RouteLoadHandler {
                         
                         // 处理断言参数
                         if (predicate.getArgs() != null) {
-                            for (Map.Entry<String, String> arg : predicate.getArgs().entrySet()) {
+                            for (Map.Entry<String, Object> arg : predicate.getArgs().entrySet()) {
                                 routePropertySource.setProperty("spring.cloud.gateway.routes[" + i + "].predicates[" + j + "].args." + arg.getKey(), arg.getValue());
                             }
                         }

@@ -1,10 +1,12 @@
 package com.dv.config.client.config;
 
-import com.dv.config.common.crypto.CryptoProperties;
-import com.dv.config.common.netty.NettyClientProperties;
+import com.dv.config.api.crypto.CryptoProperties;
+import com.dv.config.api.property.NettyClientProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -13,13 +15,9 @@ import org.springframework.context.annotation.Configuration;
  */
 @Slf4j
 @Configuration
+@EnableConfigurationProperties(CryptoProperties.class)
+@ComponentScan(basePackages = "com.dv.config.client")
 public class ConfigClientConfiguration {
-
-    @Bean
-    @ConfigurationProperties(prefix = "netty.crypto")
-    public CryptoProperties cryptoProperties() {
-        return new CryptoProperties();
-    }
 
     @Bean
     @ConfigurationProperties(prefix = "netty.client")

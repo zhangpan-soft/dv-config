@@ -1,7 +1,7 @@
 package com.dv.config.server.convertor;
 
-import com.dv.config.api.entity.RouteDefinition;
-import com.dv.config.common.dto.RouteDTO;
+import com.dv.config.api.dto.RouteDTO;
+import com.dv.config.server.entity.RouteDefinition;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
 

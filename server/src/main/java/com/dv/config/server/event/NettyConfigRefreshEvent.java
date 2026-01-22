@@ -1,6 +1,6 @@
 package com.dv.config.server.event;
 
-import com.dv.config.common.dto.ConfigDTO;
+import com.dv.config.api.dto.ConfigDTO;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 

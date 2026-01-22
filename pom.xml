@@ -4,13 +4,12 @@
     <artifactId>dv-config</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>common</module>
         <module>server</module>
         <module>client</module>
         <module>api</module>
-        <module>default-api-impl</module>
         <module>test-server</module>
         <module>test-client</module>
+        <module>server-impl</module>
     </modules>
     <version>1.0.0-SNAPSHOT</version>
     <groupId>com.dv.config</groupId>
@@ -61,26 +60,26 @@
 
             <dependency>
                 <groupId>com.dv.config</groupId>
-                <artifactId>dv-config-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.dv.config</groupId>
                 <artifactId>dv-config-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.dv.config</groupId>
-                <artifactId>dv-config-default-api-impl</artifactId>
+                <artifactId>dv-config-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.dv.config</groupId>
-                <artifactId>dv-config-server</artifactId>
+                <artifactId>dv-config-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.dv.config</groupId>
+                <artifactId>dv-config-server-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -159,6 +158,12 @@
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-extension</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.springframework.security</groupId>
                 <artifactId>spring-security-crypto</artifactId>

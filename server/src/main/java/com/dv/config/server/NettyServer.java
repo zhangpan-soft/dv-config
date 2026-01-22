@@ -1,8 +1,8 @@
 package com.dv.config.server;
 
-import com.dv.config.common.netty.MessageDecoder;
-import com.dv.config.common.netty.MessageEncoder;
-import com.dv.config.common.netty.NettyServerProperties;
+import com.dv.config.api.message.MessageDecoder;
+import com.dv.config.api.message.MessageEncoder;
+import com.dv.config.api.property.NettyServerProperties;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;

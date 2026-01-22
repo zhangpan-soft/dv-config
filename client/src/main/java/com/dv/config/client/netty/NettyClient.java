@@ -1,12 +1,16 @@
 package com.dv.config.client.netty;
 
+import com.dv.config.api.crypto.HashUtil;
+import com.dv.config.api.dto.ConfigDTO;
+import com.dv.config.api.json.JsonUtil;
+import com.dv.config.api.message.Message;
+import com.dv.config.api.message.MessageDecoder;
+import com.dv.config.api.message.MessageEncoder;
+import com.dv.config.api.message.MessageType;
+import com.dv.config.api.property.NettyClientProperties;
 import com.dv.config.client.config.DynamicPropertySource;
 import com.dv.config.client.event.ConfigRefreshEvent;
 import com.dv.config.client.event.RouteRefreshEvent;
-import com.dv.config.common.HashUtil;
-import com.dv.config.common.JsonUtil;
-import com.dv.config.common.dto.ConfigDTO;
-import com.dv.config.common.netty.*;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -112,9 +116,9 @@ public class NettyClient implements DisposableBean {
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .option(ChannelOption.TCP_NODELAY, true) // 禁用Nagle算法,减少延迟
-                    .handler(new io.netty.channel.ChannelInitializer<io.netty.channel.socket.SocketChannel>() {
+                    .handler(new ChannelInitializer<io.netty.channel.socket.SocketChannel>() {
                         @Override
-                        protected void initChannel(io.netty.channel.socket.SocketChannel ch) throws Exception {
+                        protected void initChannel(io.netty.channel.socket.SocketChannel ch) {
                             ch.pipeline()
                                     // 修改心跳间隔为15秒（写空闲），与配置保持一致
                                     .addLast(new IdleStateHandler(0, 15, 0, TimeUnit.SECONDS))
@@ -379,7 +383,7 @@ public class NettyClient implements DisposableBean {
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         stop();
     }
 
@@ -399,7 +403,7 @@ public class NettyClient implements DisposableBean {
         }
 
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, Message msg) throws Exception {
+        protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
 
             log.debug("收到服务端消息, type: {}, message: {}", msg.getType(), msg);
             MessageType messageType = MessageType.fromCode(msg.getType());
@@ -415,13 +419,15 @@ public class NettyClient implements DisposableBean {
                     message.setType(MessageType.CONFIG_UPDATE_NOTIFY_RESPONSE.getCode());
                     message.setData("1");
                     ctx.writeAndFlush(message);
-                    log.info("配置更新处理完成,命名空间: {}", msg.getSubscribeNamespaces());
+                    log.info("配置更新处理完成");
                 }
                 case ROUTE_UPDATE_NOTIFY -> {
                     // 检查路由 SHA1 是否变化
                     String newRouteSha1 = HashUtil.sha1(msg.getData());
                     if (newRouteSha1 != null && newRouteSha1.equals(routeSha1)) {
-                        log.debug("路由未变化，跳过更新. SHA1: {}", newRouteSha1);
+                        if (log.isDebugEnabled()){
+                            log.debug("路由未变化，跳过更新. SHA1: {}", newRouteSha1);
+                        }
                         return;
                     }
 
@@ -460,7 +466,9 @@ public class NettyClient implements DisposableBean {
                     // 检查路由 SHA1 是否变化
                     String newRouteSha1 = HashUtil.sha1(msg.getData());
                     if (newRouteSha1 != null && newRouteSha1.equals(routeSha1)) {
-                        log.debug("路由未变化，跳过更新. SHA1: {}", newRouteSha1);
+                        if (log.isDebugEnabled()){
+                            log.debug("路由未变化，跳过更新. SHA1: {}", newRouteSha1);
+                        }
                         return;
                     }
 
@@ -470,7 +478,6 @@ public class NettyClient implements DisposableBean {
                     if (isStartupPhase.get()){
                         routeLoadHandler.handleRouteResponse(msg, initRouteFuture);
                     }
-                    applicationContext.publishEvent(new RouteRefreshEvent(this));
                 }
                 default -> log.warn("未知的消息类型, remoteAddress:{},message:{}", ctx.channel().remoteAddress(), msg);
             }
@@ -480,7 +487,7 @@ public class NettyClient implements DisposableBean {
          * 连接异常:触发重连或者中断启动
          */
         @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             log.error("与配置服务连接异常", cause);
             ctx.close(); // 关闭通道,会触发channelInactive和closeFuture
         }

@@ -1,6 +1,6 @@
 package com.dv.config.client.config;
 
-import com.dv.config.common.crypto.CryptoUtil;
+import com.dv.config.api.crypto.CryptoUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.Assert;

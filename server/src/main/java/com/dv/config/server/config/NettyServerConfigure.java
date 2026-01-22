@@ -1,21 +1,17 @@
 package com.dv.config.server.config;
 
-import com.dv.config.common.crypto.CryptoProperties;
-import com.dv.config.common.netty.NettyServerProperties;
+import com.dv.config.api.crypto.CryptoProperties;
+import com.dv.config.api.property.NettyServerProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@EnableConfigurationProperties(CryptoProperties.class)
 @ComponentScan("com.dv.config.server")
 public class NettyServerConfigure {
-
-    @Bean
-    @ConfigurationProperties(prefix = "netty.crypto")
-    public CryptoProperties cryptoProperties() {
-        return new CryptoProperties();
-    }
 
     @Bean
     @ConfigurationProperties(prefix = "netty.server")

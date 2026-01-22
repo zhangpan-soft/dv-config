@@ -8,16 +8,28 @@
 Designed to solve the problem of managing configurations directly in backend management systems without introducing heavy configuration middleware.
 In real-world projects, there are often many dynamic configurations that need to be adjusted by operations or product managers. The core purpose of this project is to solve this problem in a unified and lightweight way.
 
-# Server Usage
-1. Import the `server` module into any Spring Boot project.
-2. Import your own implementation of the `api` module, or directly use the default database-based implementation module: `default-api-impl`.
+# Modules
+*   `api`: Core interface definitions, DTOs, and common utilities.
+*   `server`: Netty server core logic.
+*   `client`: Netty client core logic.
+*   `server-impl`: Default database-based server implementation (includes Admin UI).
+*   `test-server`: Server test application.
+*   `test-client`: Client test application.
 
-# Client Usage
-1. Import the `client` module into any Spring Boot project.
+# Quick Start
 
-# Configuration
+### Server Usage
+1. Import the `server` module.
+2. Import the `server-impl` module (or implement your own `api` interface).
+3. Configure Database and Redis.
 
-### SERVER Configuration
+### Client Usage
+1. Import the `client` module.
+2. Configure Netty connection information.
+
+# Configuration Details
+
+### 1. SERVER Configuration (`server` module)
 ```yaml
 netty:
   server:
@@ -27,16 +39,61 @@ netty:
     idle-timeout: 65 # Client heartbeat timeout (seconds)
   # Encryption Configuration
   crypto:
-    enabled: false # Enable encryption
-    master-key: ${CRYPTO_MASTER_KEY:}  # Master key for encryption
+    enabled: ${CRYPTO_ENABLED:false} # Enable encryption
+    master-key: ${CRYPTO_MASTER_KEY:}  # Master key (Required in production)
     current-version: v1 # Current key version
     algorithm: AES-256-GCM # Encryption algorithm
     iterations: 65536 # Encryption iterations
 ```
 
-### CLIENT Configuration
+### 2. SERVER IMPL Configuration (`server-impl` module)
+If using the default database implementation, configure the following:
+
 ```yaml
-# Netty Client Configuration
+spring:
+  liquibase:
+    enabled: true
+    default-schema: ${DB_SCHEMA:config-server}
+    change-log: classpath*:db/changelog/master.xml
+    parameters:
+      TABLE_NAME_CONFIG: ${TABLE_NAME_CONFIG:sys_config}
+      TABLE_NAME_ROUTE: ${TABLE_NAME_ROUTE:sys_route}
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${spring.liquibase.default-schema}?${DB_URL_PARAMS:useUnicode=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF8&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 10
+  data:
+    redis:
+      database: ${REDIS_DATABASE:7}
+      host: ${REDIS_HOST:localhost}
+      password: ${REDIS_PASSWORD:}
+      port: ${REDIS_PORT:6379}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+      column-format: "`%s`"
+      insert-strategy: not_null
+      update-strategy: not_null
+  mapper-locations: classpath*:/mapper/**/*.xml
+
+# Admin UI Configuration
+config:
+  admin:
+    ui:
+      enabled: false # Enable built-in admin UI
+      public-path: "" # Frontend public path, default empty
+```
+
+### 3. CLIENT Configuration (`client` module)
+```yaml
 netty:
   client:
     host: localhost # Netty server address
@@ -62,111 +119,66 @@ netty:
     refresh-namespaces:
       - casino-gateway
       - common
-  # Encryption Configuration
+  # Encryption Configuration (Must match server)
   crypto:
-    enabled: false # Enable encryption
-    master-key: ${CRYPTO_MASTER_KEY:}  # Master key for encryption
-    current-version: v1 # Current key version
-    algorithm: AES-256-GCM # Encryption algorithm
-    iterations: 65536 # Encryption iterations
+    enabled: false 
+    master-key: ${CRYPTO_MASTER_KEY:}
+    current-version: v1
+    algorithm: AES-256-GCM
+    iterations: 65536
 ```
 
-### default-api-impl Configuration (Default Database Implementation)
-If you use the `default-api-impl` module, you need to configure the database connection:
-```yaml
-mybatis-plus:
-  configuration:
-    map-underscore-to-camel-case: true
-  global-config:
-    db-config:
-      id-type: auto
-      column-format: "`%s`"  # Add backticks to all fields to avoid reserved words
-      insert-strategy: not_null
-      update-strategy: not_null
-  mapper-locations: classpath*:/mapper/**/*.xml
+# Environment Variables
+Supported environment variables for containerized deployment:
 
-spring:
-  liquibase:
-    enabled: true
-    default-schema: ${DATABASE_SCHEMA:config-server}
-    change-log: db/changelog/master.xml
-    parameters:
-      TABLE_NAME_CONFIG: ${TABLE_NAME_CONFIG:config}
-      TABLE_NAME_ROUTE: ${TABLE_NAME_ROUTE:route}
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      minimum-idle: 1
-      maximum-pool-size: 10
-
-# Enable Admin UI (Optional)
-dv:
-  config:
-    admin-ui:
-      enabled: true # Enable built-in management interface
-```
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `NETTY_PORT` | 8888 | Netty server port |
+| `NETTY_BOSS_THREAD_COUNT` | 1 | Netty Boss thread count |
+| `NETTY_WORKER_THREAD_COUNT` | 4 | Netty Worker thread count |
+| `CRYPTO_ENABLED` | false | Enable encryption |
+| `CRYPTO_MASTER_KEY` | (empty) | Encryption master key |
+| `DB_HOST` | localhost | Database host |
+| `DB_PORT` | 3306 | Database port |
+| `DB_SCHEMA` | config-server | Database schema name |
+| `DB_USERNAME` | root | Database username |
+| `DB_PASSWORD` | 123456 | Database password |
+| `DB_URL_PARAMS` | (see config) | JDBC URL parameters |
+| `TABLE_NAME_CONFIG` | sys_config | Config table name |
+| `TABLE_NAME_ROUTE` | sys_route | Route table name |
+| `REDIS_HOST` | localhost | Redis host |
+| `REDIS_PORT` | 6379 | Redis port |
+| `REDIS_PASSWORD` | (empty) | Redis password |
+| `REDIS_DATABASE` | 7 | Redis database index |
 
 # Admin UI Features
-The `default-api-impl` module provides a comprehensive lightweight management interface, ready to use out of the box.
+The `server-impl` module provides a comprehensive lightweight management interface (Vue 3 + Element Plus SPA), supporting:
 
-### 1. Core Features
-*   **Draft Mechanism**: All changes (add/update/delete) are first saved as drafts and do not affect the live environment immediately.
-*   **Publish Workflow**: Once drafts are reviewed, they can be published to live with one click, automatically pushing updates to all clients.
-*   **Diff View**: Before publishing, a side-by-side view shows the differences between drafts and live configurations (additions, modifications, deletions).
-*   **History & Rollback**: Every publish generates a version snapshot (keeping the last 10 versions). Supports viewing history details and **one-click rollback** (including batch rollback).
-*   **Encryption Support**: Provides an online encryption tool. Sensitive configurations can be encrypted with one click. The system automatically identifies encrypted values and marks them in the UI (decryption viewing is not provided).
+1.  **Config Management**:
+    *   CRUD, fuzzy search.
+    *   **Draft Mechanism**: Changes are saved as drafts first, published after review.
+    *   **History**: Automatically keeps the last 10 versions, supports one-click rollback.
+    *   **Batch Operations**: Batch add, delete, enable, disable.
+    *   **Encryption Tool**: Online encryption for sensitive values.
 
-### 2. Config Management
-*   **List & Filter**: Supports fuzzy search by Namespace, Key, Value, and Description.
-*   **Batch Operations**: Supports batch add, modify, delete, enable, and disable.
-*   **Encryption**: Click the lock icon when adding/modifying to encrypt plaintext values.
+2.  **Route Management**:
+    *   Supports Spring Cloud Gateway dynamic routing.
+    *   JSON editor for Predicates and Filters.
+    *   Supports draft, publish, history, and rollback workflows.
 
-### 3. Route Management
-*   **Dynamic Routing**: Supports Spring Cloud Gateway dynamic route configuration.
-*   **JSON Editor**: Provides a friendly JSON editor for configuring Predicates, Filters, and Metadata.
-*   **Full Workflow**: Supports draft, publish, history, and rollback workflows as well.
-
-### 4. Access URLs
-*   Config Management: `/admin/config`
-*   Route Management: `/admin/route`
-
-### 5. Security Integration
-The Admin UI does not have a built-in user system. Instead, it uses the `UserProvider` interface to get the current operator's information.
-You can implement this interface and register it as a Bean to integrate with your own authentication system (e.g., Spring Security, Shiro, or custom Session).
-```java
-@Component
-public class MyUserProvider implements UserProvider {
-    @Override
-    public String getUserId() {
-        // Get user ID from your security context
-        return SecurityContextHolder.getContext().getAuthentication().getName();
-    }
-}
-```
+3.  **Access URLs**:
+    *   Config: `/admin/config`
+    *   Route: `/admin/route`
 
 # Important Notes
-1. The encryption algorithm only supports **AES-256-GCM**.
-2. The Client decrypts data only after receiving it from the Server. The Server stores and transmits data as-is (if stored encrypted, it transmits encrypted values).
-3. When decrypting, if the configuration value format is not a valid encrypted JSON string, the Client treats it as plain text.
-
-# Additional Information
-1. Configuration loading starts **before** the Spring Boot service fully starts, so information like database credentials can be loaded using the client.
-2. To use the Spring Cloud configuration refresh mechanism, please listen for the configuration refresh event and cooperate with the Spring Cloud refresh mechanism (`ContextRefresher`). The same applies to routes.
-3. When implementing the API, if you need to refresh configurations or routes, please trigger the refresh when changes occur:
-   - `com.dv.config.server.handler.NettyConfigHandler#refresh`
-   - `com.dv.config.server.handler.NettyRouteHandler#refresh`
+1.  The encryption algorithm only supports **AES-256-GCM**.
+2.  The Client decrypts data only after receiving it from the Server. The Server stores and transmits data as-is.
+3.  When decrypting, if the configuration value format is not a valid encrypted JSON string, the Client treats it as plain text.
 
 # Usage Examples
 
 ### 1. Client Dynamic Configuration Listener
 ```java
-/**
- * Configuration Refresh Listener
- * Listens for config update events and triggers Spring Cloud Context refresh.
- */
 @Slf4j
 @Component
 public class ConfigRefreshListener implements ApplicationListener<ConfigRefreshEvent> {
@@ -176,18 +188,9 @@ public class ConfigRefreshListener implements ApplicationListener<ConfigRefreshE
 
     @Override
     public void onApplicationEvent(@Nonnull ConfigRefreshEvent event) {
-        // If ContextRefresher (Spring Cloud Context) is present, trigger refresh.
-        // This refreshes all @RefreshScope Beans and @ConfigurationProperties.
         if (contextRefresher != null) {
-            try {
-                contextRefresher.refresh();
-                log.info("Configuration refreshed successfully");
-            } catch (Exception e) {
-                log.error("Configuration refresh failed", e);
-            }
-        } else {
-            if (log.isDebugEnabled())
-                log.debug("ContextRefresher not enabled, skipping @RefreshScope Bean refresh");
+            contextRefresher.refresh();
+            log.info("Configuration refreshed successfully");
         }
     }
 }
@@ -195,18 +198,6 @@ public class ConfigRefreshListener implements ApplicationListener<ConfigRefreshE
 
 ### 2. Client Dynamic Route Listener (Gateway)
 ```java
-import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationListener;
-import org.springframework.stereotype.Component;
-
-/**
- * Route Refresh Listener
- * Listens for route update events from config-server.
- */
 @Slf4j
 @Component
 public class RouteRefreshListener implements ApplicationListener<RouteRefreshEvent> {
@@ -216,44 +207,7 @@ public class RouteRefreshListener implements ApplicationListener<RouteRefreshEve
 
     @Override
     public void onApplicationEvent(@Nonnull RouteRefreshEvent event) {
-        log.info("Received route update event");
-        try {
-            applicationContext.publishEvent(new RefreshRoutesEvent(this));
-        } catch (Exception e) {
-            log.error("Failed to handle route update event", e);
-        }
-    }
-}
-```
-
-### 3. Route Definition Locator (Gateway)
-```java
-import org.springframework.boot.context.properties.bind.BindResult;
-import org.springframework.boot.context.properties.bind.Bindable;
-import org.springframework.boot.context.properties.bind.Binder;
-import org.springframework.cloud.gateway.route.RouteDefinition;
-import org.springframework.cloud.gateway.route.RouteDefinitionLocator;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
-
-import java.util.List;
-
-@Component
-public class EnvironmentRouteDefinitionLocator implements RouteDefinitionLocator {
-
-    private final Environment environment;
-
-    public EnvironmentRouteDefinitionLocator(Environment environment) {
-        this.environment = environment;
-    }
-
-    @Override
-    public Flux<RouteDefinition> getRouteDefinitions() {
-        // Bind spring.cloud.gateway.routes configuration from Environment
-        BindResult<List<RouteDefinition>> bindResult = Binder.get(environment)
-                .bind("spring.cloud.gateway.routes", Bindable.listOf(RouteDefinition.class));
-        return Flux.fromStream(bindResult.get().stream());
+        applicationContext.publishEvent(new RefreshRoutesEvent(this));
     }
 }
 ```

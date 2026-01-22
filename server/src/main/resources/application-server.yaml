@@ -5,7 +5,7 @@ netty:
     worker-thread-count: ${NETTY_WORKER_THREAD_COUNT:4}
     # 加密配置
   crypto:
-    enabled: false
+    enabled: ${CRYPTO_ENABLED:false}
     master-key: ${CRYPTO_MASTER_KEY:}  # 生产环境必须从环境变量读取
     current-version: v1
     algorithm: AES-256-GCM

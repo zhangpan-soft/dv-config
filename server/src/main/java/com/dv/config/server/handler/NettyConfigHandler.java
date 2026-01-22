@@ -1,9 +1,9 @@
 package com.dv.config.server.handler;
 
-import com.dv.config.api.entity.ConfigDefinition;
-import com.dv.config.api.gateway.ConfigGateway;
-import com.dv.config.common.dto.ConfigDTO;
+import com.dv.config.api.dto.ConfigDTO;
+import com.dv.config.server.entity.ConfigDefinition;
 import com.dv.config.server.event.NettyConfigRefreshEvent;
+import com.dv.config.server.gateway.ConfigGateway;
 import jakarta.annotation.Resource;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;

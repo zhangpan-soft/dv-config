@@ -1,6 +1,6 @@
 package com.dv.config.server.event;
 
-import com.dv.config.common.dto.RouteDTO;
+import com.dv.config.api.dto.RouteDTO;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 

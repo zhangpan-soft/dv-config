@@ -1,10 +1,10 @@
 package com.dv.config.server;
 
-import com.dv.config.common.JsonUtil;
-import com.dv.config.common.dto.ConfigDTO;
-import com.dv.config.common.dto.RouteDTO;
-import com.dv.config.common.netty.Message;
-import com.dv.config.common.netty.MessageType;
+import com.dv.config.api.dto.ConfigDTO;
+import com.dv.config.api.dto.RouteDTO;
+import com.dv.config.api.json.JsonUtil;
+import com.dv.config.api.message.Message;
+import com.dv.config.api.message.MessageType;
 import com.dv.config.server.convertor.RouteConvertor;
 import com.dv.config.server.event.NettyConfigRefreshEvent;
 import com.dv.config.server.event.NettyRouteRefreshEvent;

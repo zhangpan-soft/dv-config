@@ -1,10 +1,10 @@
 package com.dv.config.server.handler;
 
 
-import com.dv.config.api.entity.RouteDefinition;
-import com.dv.config.api.gateway.RouteGateway;
 import com.dv.config.server.convertor.RouteConvertor;
+import com.dv.config.server.entity.RouteDefinition;
 import com.dv.config.server.event.NettyRouteRefreshEvent;
+import com.dv.config.server.gateway.RouteGateway;
 import jakarta.annotation.Resource;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;

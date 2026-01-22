@@ -30,11 +30,7 @@
         </dependency>
         <dependency>
             <groupId>com.dv.config</groupId>
-            <artifactId>dv-config-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.dv.config</groupId>
-            <artifactId>dv-config-default-api-impl</artifactId>
+            <artifactId>dv-config-server-impl</artifactId>
         </dependency>
     </dependencies>
 
